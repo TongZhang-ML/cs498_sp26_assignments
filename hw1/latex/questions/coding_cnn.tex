@@ -1,0 +1,153 @@
+\begin{Q}
+\textbf{Convolutional Neural Networks and ResNets on MNIST (Coding). 40 Points}
+
+In this problem, you will implement and test two image classifiers on MNIST
+(handwritten digits, $28\times 28$ grayscale images).
+You will (i) build a standard CNN, (ii) build a small ResNet, and (iii) compare
+design choices such as Batch Normalization and the optimizer (SGD vs Adam).
+
+\medskip
+\noindent\textbf{Data.}
+Use \texttt{torchvision.datasets.MNIST} with \texttt{ToTensor()} and normalization
+\texttt{Normalize((0.5,), (0.5,))}.
+
+
+%\noindent\textbf{Implementation rules (important for grading consistency).}
+%\begin{itemize}
+%\item Define sub-modules in the order data flows through them.
+%\item Use \texttt{torch.nn.Module} layers (do not re-implement layers).
+%\end{itemize}
+
+\begin{enumerate}
+\item \noindent\textbf{A Simple CNN architecture.}
+Your CNN must use the following sequence of layers (in this order):
+\begin{itemize}
+    \item \texttt{Conv2d} with in\_channels=1, out\_channels=16,
+      kernel\_size=3, padding=1, and bias=\texttt{True}
+    \item \texttt{BatchNorm2d} \textbf{(optional; controlled by use\_bn flag)}
+    \item \texttt{ReLU}
+    \item \texttt{MaxPool2d} with kernel\_size=2
+    \item \texttt{Conv2d} with out\_channels=32, kernel\_size=3,
+      padding=1, and bias=\texttt{True}.
+    \item \texttt{BatchNorm2d} \textbf{(optional; controlled by use\_bn flag)}
+    \item \texttt{ReLU}
+    \item \texttt{MaxPool2d}(kernel\_size=2)
+    \item Flatten to shape $(N, \text{features})$
+    \item \texttt{Linear}(\text{features}, 128), then \texttt{ReLU}
+    \item \texttt{Linear}(128, 10)
+\end{itemize}
+Use default values for any arguments not explicitly listed.
+\begin{enumerate}
+\item (3 points) \textbf{Shape derivations (written).}
+For the baseline CNN, derive the tensor shapes after each of the two pooling layers, and derive the
+number of input features of the first \texttt{Linear} layer.
+Assume MNIST images have input shape $(N,1,28,28)$.
+
+\begin{solution}
+After the first \texttt{MaxPool2d}(2): $(N,16,14,14)$.
+After the second \texttt{MaxPool2d}(2): $(N,32,7,7)$.
+Flatten gives $32\times 7\times 7 = 3136$ input features to the first
+\texttt{Linear} layer.
+\end{solution}
+
+\item  (12 points) \textbf{Implement the baseline CNN.}
+Implement \texttt{MNISTConvNet}.
+Your constructor should take a boolean flag \texttt{use\_bn} that turns BatchNorm on/off
+(when off, skip BatchNorm layers).
+\end{enumerate}
+
+\item
+\textbf{A shallow ResNet architecture.}
+You will also implement a simplified ResNet using the following \texttt{ResBlock} (a residual block).
+For an input example $x$ of shape $(C,H,W)$, the resblock outputs
+\[
+\texttt{ResBlock}(x) = \text{ReLU}\!\big(x + f(x)\big),
+\]
+where $f(x)$ uses the following sequence of layers (in this order): 
+\begin{itemize}
+\item \texttt{Conv2d}(C, C, kernel\_size=3, stride=1, padding=1, bias=\texttt{False})
+\item \texttt{BatchNorm2d}
+\item \texttt{ReLU}
+\item \texttt{Conv2d}(C, C, kernel\_size=3, stride=1, padding=1, bias=\texttt{False})
+\item \texttt{BatchNorm2d}
+\end{itemize}
+Because kernel size $3\times 3$ and padding $1$ keep the spatial size, $f(x)$ has the same shape as $x$.
+
+The shallow ResNet must use:
+\begin{itemize}
+    \item \texttt{Conv2d}(1, C, kernel\_size=3, stride=2, padding=1, bias=\texttt{False})
+    \item \texttt{BatchNorm2d}
+    \item \texttt{ReLU}
+    \item \texttt{MaxPool2d}(kernel\_size=2)
+    \item  Apply \texttt{num\_blocks} independent \texttt{ResBlock}(C) layers in sequence
+      (i.e., each block has its own parameters; do not share weights across blocks)
+    \item \texttt{AdaptiveAvgPool2d}((1,1))
+    \item Flatten to shape $(N, C)$
+    \item \texttt{Linear}(C, 10)
+    \end{itemize}
+    In experiments, use $C=16$.
+
+\begin{enumerate}
+\item  (12 points) \textbf{Implement the residual block and shallow ResNet.}
+Implement \texttt{ResBlock} and \texttt{MNISTResNet}  as described above.
+\item  (3 points) \textbf{Concept (written).}
+Explain why a \texttt{Conv2d} layer does not need a bias term if it is
+followed by \texttt{BatchNorm2d}.
+
+\begin{solution}
+If \texttt{Conv2d} adds a constant bias $b$ to each activation in a channel, then BatchNorm subtracts the channel mean.
+Adding $b$ shifts the mean by $b$ as well, so after mean subtraction the effect of $b$ cancels.
+\end{solution}
+
+\end{enumerate}
+    
+
+
+\item
+\textbf{Training, evaluation, and reporting.}
+
+Implement \texttt{fit\_and\_evaluate} and run the following experiments on MNIST:
+  Use \texttt{CrossEntropyLoss}. Train for 5 epochs (to keep runtime short).
+
+Report test accuracy for each run, and include a plot of epoch vs (train loss, test loss) for each run.
+Most runs should achieve \textbf{at least 98\%} test accuracy.
+\begin{enumerate}
+    \item (2 points) Baseline CNN with \texttt{use\_bn=True}, trained
+      with SGD.
+      \begin{solution}
+        cnn\_bn\_sgd: reported test acc = 98.98\%  test loss = 0.0348
+        \begin{center}
+          \includegraphics[width=0.5\textwidth]{outputs/cnn_bn_sgd.png}
+        \end{center}
+      \end{solution}
+    \item (2 points) Baseline CNN with \texttt{use\_bn=False}, trained with SGD.
+      \begin{solution}
+        cnn\_nobn\_sgd: reported test acc = 98.59\%  test loss = 0.0466 
+        \begin{center}
+          \includegraphics[width=0.5\textwidth]{outputs/cnn_nobn_sgd.png}
+        \end{center}
+      \end{solution}
+    \item (2 points) Baseline CNN with \texttt{use\_bn=True}, trained with Adam.
+      \begin{solution}
+        cnn\_bn\_adam: reported test acc = 98.28\%  test loss = 0.0600 
+        \begin{center}
+          \includegraphics[width=0.5\textwidth]{outputs/cnn_bn_adam.png}
+        \end{center}
+      \end{solution}
+    \item (4 points) Shallow ResNet ($C=16$ with 1 and 3 blocks), trained with SGD.
+      \begin{solution}
+        resnet1x16\_sgd: reported test acc = 98.34\%  test loss =   0.0531
+        \begin{center}
+          \includegraphics[width=0.5\textwidth]{outputs/resnet1x16_sgd.png}
+        \end{center}
+
+        resnet3x16\_sgd: reported test acc = 98.90\%  test loss = 0.0349  
+        \begin{center}
+          \includegraphics[width=0.5\textwidth]{outputs/resnet3x16_sgd.png}
+        \end{center}
+      \end{solution}
+    \end{enumerate}
+\end{enumerate}
+
+
+\end{Q}

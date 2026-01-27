@@ -1,0 +1,10 @@
+cnn_bn_sgd: reported test acc = 98.98%  test loss = 0.0348  (plot: outputs/cnn_bn_sgd.png)
+cnn_bn_sgd: result check passed = True
+cnn_nobn_sgd: reported test acc = 98.59%  test loss = 0.0466  (plot: outputs/cnn_nobn_sgd.png)
+cnn_nobn_sgd: result check passed = True
+cnn_bn_adam: reported test acc = 98.28%  test loss = 0.0600  (plot: outputs/cnn_bn_adam.png)
+cnn_bn_adam: result check passed = True
+resnet1x16_sgd: reported test acc = 98.34%  test loss = 0.0531  (plot: outputs/resnet1x16_sgd.png)
+resnet1x16_sgd: result check passed = True
+resnet3x16_sgd: reported test acc = 98.90%  test loss = 0.0349  (plot: outputs/resnet3x16_sgd.png)
+resnet3x16_sgd: result check passed = True

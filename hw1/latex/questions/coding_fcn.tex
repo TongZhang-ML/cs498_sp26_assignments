@@ -1,0 +1,211 @@
+ \begin{Q}
+\textbf{Fully-Connected Neural Network Training. 60 Points}
+
+In this problem, you will implement and train a fully-connected neural network (MLP) for binary
+classification using either least squares loss or logistic regression loss.
+
+You are provided with training data in CSV format with columns
+\[
+(\texttt{feature1},\ldots,\texttt{feature6},\texttt{target}),
+\quad y\in\{0,1\}.
+\]
+Example rows:
+\begin{verbatim}
+feature1,feature2,feature3,feature4,feature5,feature6,target
+72,284120,10,0,0,40,0
+44,755858,9,0,0,70,1
+...
+\end{verbatim}
+
+
+
+
+Your task is to fill in the functions marked ``implement'' in the
+starter code, and answer questions below. 
+
+\begin{enumerate}
+\item Consider a neural network $f(\theta,x)$ with the following loss
+functions:
+least squares loss
+\[
+\ell_{\text{ls}}(\theta;x,y)=\frac12\big(f(\theta,x)-y\big)^2,
+\]
+and logistic regression
+\[
+\ell_{\text{lr}}(\theta;x,y) = -\log P(y\mid x),\qquad
+P(y=1\mid \vx)=\sigma(f(\theta,x)),
+\quad
+\sigma(z)=\frac{1}{1+e^{-z}}.
+\]
+\begin{enumerate}
+\item (3 points) Derive $\frac{\partial}{\partial
+    \theta}\ell_{\text{ls}}(\theta,y)$.
+\begin{solution}
+  \[
+\nabla_\theta \ell_{\text{ls}}(\theta;x,y)
+=\frac{\partial \ell_{\text{ls}}}{\partial z}\,\nabla_\theta z
+=(z-y)\,\nabla_\theta f(\theta,x).
+\]
+\end{solution}
+
+\item (3 points) Derive $\frac{\partial}{\partial \theta}\ell_{\text{lr}}(f(\theta,x),y)$.
+
+\begin{solution}
+\[
+\nabla_\theta \ell_{\text{lr}}(\theta;x,y)
+=\big(\sigma(f(\theta,x))-y\big)\,\nabla_\theta f(\theta,x).
+\]
+\end{solution}
+\end{enumerate}
+
+
+\item Consider $\mathrm{MLP}_\theta(\vx)\in\mathbb{R}$ with scalar output.
+Use the following network with hidden width $h$:
+\[
+\vx \in \mathbb{R}^6
+\;\to\;
+\mathrm{Linear}(6,h)\to\mathrm{ReLU}
+\to
+\mathrm{Linear}(h,h)\to\mathrm{ReLU}
+\to
+\mathrm{Linear}(h,h)\to\mathrm{ReLU}
+\to
+\mathrm{Linear}(h,1),
+\]
+with the following bias rules:
+\[
+\text{Layer 1 has bias, Layers 2--3 have no bias, Output layer has bias.}
+\]
+The output is treated as a logit for logistic regression, and as a regression value for least squares.
+
+\begin{enumerate}
+\item (3 points) Compute the total number of trainable scalar parameters in the required MLP architecture
+(with the given bias rules). Provide the final formula in terms of
+$h$.
+
+\begin{solution}
+Let the input dimension be $d=6$ and the hidden width be $h$.
+
+\begin{itemize}
+\item Layer 1: $\mathrm{Linear}(6,h)$ has weight matrix $W_1\in\mathbb{R}^{h\times 6}$ with $6h$ parameters and bias $b_1\in\mathbb{R}^h$ with $h$ parameters. Total: $6h+h$.
+\item Layer 2: $\mathrm{Linear}(h,h)$ has weight matrix $W_2\in\mathbb{R}^{h\times h}$ with $h^2$ parameters and \emph{no bias}. Total: $h^2$.
+\item Layer 3: $\mathrm{Linear}(h,h)$ has weight matrix $W_3\in\mathbb{R}^{h\times h}$ with $h^2$ parameters and \emph{no bias}. Total: $h^2$.
+\item Output layer: $\mathrm{Linear}(h,1)$ has weight matrix $W_4\in\mathbb{R}^{1\times h}$ with $h$ parameters and bias $b_4\in\mathbb{R}$ with $1$ parameter. Total: $h+1$.
+\end{itemize}
+
+Summing all trainable parameters gives
+\[
+(6h+h) + h^2 + h^2 + (h+1)
+= 2h^2 + 8h + 1.
+\]
+\end{solution}
+
+\item (10 points) Implement the two functions required in MLP class.
+\end{enumerate}
+
+\item  For the input data, each feature should be normalized using \texttt{StandardScaler}.
+During cross validation, the scaler must be fit on the training fold only,
+then applied to both the training fold and the validation fold.
+During final training/testing, the scaler must be fit on the full training set only,
+then applied to both training and test sets.
+\begin{enumerate}
+\item (3 points) Explain briefly why noramlization is useful, and why it
+  should be on training data only.
+
+  \begin{solution}
+Normalization is useful because input features can have very different scales.
+Without normalization, features with large magnitudes can dominate the gradients,
+making the model difficult to train.
+
+The scaler must be fit on training data only to avoid data
+leakage. The transformation should be consistent across training and
+test, and thus the same scaler fit on training data is applied to validation and test data.
+\end{solution}
+
+\item (5 points) Implement \texttt{fit\_scaler(X\_train)} to fit and return a \texttt{StandardScaler}.
+\end{enumerate}
+
+\item (5 points) Implement \texttt{make\_train\_loader(X,y,batch\_size)} and decide whether to shuffle.
+Briefly explain your choice in a comment.
+
+\begin{solution}
+We set \texttt{shuffle=True} for the training DataLoader.
+
+Shuffling is important for SGD because it
+leads to more stable and effective optimization, and improves convergence.
+\end{solution}
+
+\item (5 points) \textbf{Optimizer implementation.}
+  Implement \texttt{make\_optimizer} function.
+  
+\item (10 points) \textbf{Training loop implementation.}
+
+Implement \texttt{train\_one\_epoch(model,loader,optimizer,loss\_name,device)}.
+Your implementation must:
+(i) iterate over mini-batches,
+(ii) compute the loss using \texttt{compute\_loss},
+(iii) backpropagate using PyTorch autograd, and
+(iv) update parameters using SGD with momentum.
+
+\item 
+Print  \LaTeX\ table from cross validation experiment. 
+(highest accuracy; break ties by smaller learning rate). 
+
+\begin{enumerate}
+\item (4 points) Provide table for logistic regression.
+  \begin{solution}
+    
+\begin{tabular}{cc}
+\hline
+Step Size & CV Accuracy \\
+\hline
+ 0.001 & 0.75 \\
+\hline
+ 0.010 & 0.83 \\
+\hline
+ 0.100 & 0.82 \\
+\hline
+ 1.000 & 0.75 \\
+\hline
+ 10.000 & 0.75 \\
+\hline
+\multicolumn{2}{c}{Best step size:  0.010} \\
+\hline
+\end{tabular}
+
+  \end{solution}
+\item (4 points) Provide table for least squares regression.
+
+  \begin{solution}
+    \begin{tabular}{cc}
+\hline
+Step Size & CV Accuracy \\
+\hline
+ 0.001 & 0.76 \\
+\hline
+ 0.010 & 0.82 \\
+\hline
+ 0.100 & 0.83 \\
+\hline
+ 1.000 & 0.64 \\
+\hline
+ 10.000 & 0.75 \\
+\hline
+\multicolumn{2}{c}{Best step size:  0.100} \\
+\hline
+\end{tabular}
+  \end{solution}
+\end{enumerate}
+
+\item (5 points) Performance on hidden testset. This is not reported,
+  and will be evaluated based on accuracy achieved.
+
+  \begin{solution}
+    Test results (logistic\_regression): loss=0.3952, accuracy=0.8210
+
+    Test results (least\_squares): loss=0.0641, accuracy=0.8255
+
+  \end{solution}
+  
+\end{enumerate}
+\end{Q}

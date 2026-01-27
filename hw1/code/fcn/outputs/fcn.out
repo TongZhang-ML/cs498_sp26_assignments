@@ -1,0 +1,46 @@
+
+{Results for loss function: logistic_regression}
+
+\begin{tabular}{cc}
+\hline
+Step Size & CV Accuracy \\
+\hline
+ 0.001 & 0.75 \\
+\hline
+ 0.010 & 0.83 \\
+\hline
+ 0.100 & 0.82 \\
+\hline
+ 1.000 & 0.75 \\
+\hline
+ 10.000 & 0.75 \\
+\hline
+\multicolumn{2}{c}{Best step size:  0.010} \\
+\hline
+\end{tabular}
+
+{Results for loss function: least_squares}
+
+\begin{tabular}{cc}
+\hline
+Step Size & CV Accuracy \\
+\hline
+ 0.001 & 0.76 \\
+\hline
+ 0.010 & 0.82 \\
+\hline
+ 0.100 & 0.83 \\
+\hline
+ 1.000 & 0.64 \\
+\hline
+ 10.000 & 0.75 \\
+\hline
+\multicolumn{2}{c}{Best step size:  0.100} \\
+\hline
+\end{tabular}
+
+Test results (logistic_regression): loss=0.3952, accuracy=0.8210
+
+
+Test results (least_squares): loss=0.0641, accuracy=0.8255
+
