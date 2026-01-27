@@ -38,7 +38,7 @@ P(y=1\mid \vx)=\sigma(f(\theta,x)),
 \sigma(z)=\frac{1}{1+e^{-z}}.
 \]
 \begin{enumerate}
-\item (3 points) Derive $\frac{\partial}{\partial
+\item (3 points) \textbf{(written)}  Derive $\frac{\partial}{\partial
     \theta}\ell_{\text{ls}}(\theta,y)$.
 \begin{solution}
   \[
@@ -48,7 +48,7 @@ P(y=1\mid \vx)=\sigma(f(\theta,x)),
 \]
 \end{solution}
 
-\item (3 points) Derive $\frac{\partial}{\partial \theta}\ell_{\text{lr}}(f(\theta,x),y)$.
+\item (3 points) \textbf{(written)}  Derive $\frac{\partial}{\partial \theta}\ell_{\text{lr}}(f(\theta,x),y)$.
 
 \begin{solution}
 \[
@@ -79,7 +79,7 @@ with the following bias rules:
 The output is treated as a logit for logistic regression, and as a regression value for least squares.
 
 \begin{enumerate}
-\item (3 points) Compute the total number of trainable scalar parameters in the required MLP architecture
+\item (3 points) \textbf{(written)} Compute the total number of trainable scalar parameters in the required MLP architecture
 (with the given bias rules). Provide the final formula in terms of
 $h$.
 
@@ -109,7 +109,7 @@ then applied to both the training fold and the validation fold.
 During final training/testing, the scaler must be fit on the full training set only,
 then applied to both training and test sets.
 \begin{enumerate}
-\item (3 points) Explain briefly why noramlization is useful, and why it
+\item (3 points) \textbf{(written)} Explain briefly why noramlization is useful, and why it
   should be on training data only.
 
   \begin{solution}
@@ -135,11 +135,10 @@ Shuffling is important for SGD because it
 leads to more stable and effective optimization, and improves convergence.
 \end{solution}
 
-\item (5 points) \textbf{Optimizer implementation.}
+\item (5 points) 
   Implement \texttt{make\_optimizer} function.
   
-\item (10 points) \textbf{Training loop implementation.}
-
+\item (10 points) 
 Implement \texttt{train\_one\_epoch(model,loader,optimizer,loss\_name,device)}.
 Your implementation must:
 (i) iterate over mini-batches,
@@ -152,7 +151,7 @@ Print  \LaTeX\ table from cross validation experiment.
 (highest accuracy; break ties by smaller learning rate). 
 
 \begin{enumerate}
-\item (4 points) Provide table for logistic regression.
+\item (4 points) \textbf{(written)} Provide table for logistic regression.
   \begin{solution}
     
 \begin{tabular}{cc}
@@ -174,7 +173,7 @@ Step Size & CV Accuracy \\
 \end{tabular}
 
   \end{solution}
-\item (4 points) Provide table for least squares regression.
+\item (4 points) \textbf{(written)}  Provide table for least squares regression.
 
   \begin{solution}
     \begin{tabular}{cc}
