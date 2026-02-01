@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+cp /autograder/submission/cnn_solution.py /autograder/source/cnn_solution.py
+cp /autograder/submission/fcn_solution.py /autograder/source/fcn_solution.py
+
+cd /autograder/source
+python3 run_tests.py --gradescope
+cd ..
+cp source/results.json results/results.json
+
