@@ -91,12 +91,40 @@ The shallow ResNet must use:
 \item  (12 points) Implement the residual block 
 \texttt{ResBlock} and shallow ResNet \texttt{MNISTResNet}  as described above.
 \item  (3 points) \textbf{(written)}
-Explain why a \texttt{Conv2d} layer does not need a bias term if it is
-followed by \texttt{BatchNorm2d}.
+  Consider an input feature map of shape $(C,H,W)$.  
+When using \texttt{Conv2d(C, C, kernel\_size=3, stride=1, padding=1)},  
+the output feature map has the same shape $(C,H,W)$.
 
+\medskip
+\noindent
+Answer the following questions:
+\begin{enumerate}
+\item What is the output feature map shape when using
+\texttt{Conv2d(C, C, kernel\_size=3, stride=1, padding=0)}?
+\item What is the output feature map shape when using
+\texttt{Conv2d(C, C, kernel\_size=1, stride=2, padding=0)}?
+\item What padding size $p$ should be used so that
+\texttt{Conv2d(C, C, kernel\_size=5, stride=1, padding=$p$)}
+produces an output feature map of shape $(C,H,W)$?
+\end{enumerate}
 \begin{solution}
-If \texttt{Conv2d} adds a constant bias $b$ to each activation in a channel, then BatchNorm subtracts the channel mean.
-Adding $b$ shifts the mean by $b$ as well, so after mean subtraction the effect of $b$ cancels.
+\noindent
+1. \texttt{kernel\_size=3}, \texttt{stride=1}, \texttt{padding=0}:
+output shape $(C, H-2, W-2)$.
+
+\medskip
+\noindent
+2. \texttt{kernel\_size=1}, \texttt{stride=2}, \texttt{padding=0}:
+output shape
+\[
+\left(C, \left\lfloor \frac{H+1}{2} \right\rfloor,
+           \left\lfloor \frac{W+1}{2} \right\rfloor \right).
+\]
+
+\medskip
+\noindent
+3. To keep the output shape $(C,H,W)$ with \texttt{kernel\_size=5} and
+\texttt{stride=1}, the required padding is $p=2$.
 \end{solution}
 
 \end{enumerate}
@@ -106,7 +134,7 @@ Adding $b$ shifts the mean by $b$ as well, so after mean subtraction the effect 
 \item
 \textbf{Training, evaluation, and reporting.}
 
-Implement \texttt{fit\_and\_evaluate} and run the following experiments on MNIST:
+Run the following experiments on MNIST:
   Use \texttt{CrossEntropyLoss}. Train for 5 epochs (to keep runtime short).
 
 Report test accuracy for each run, and include a plot of epoch vs (train loss, test loss) for each run.
@@ -151,3 +179,7 @@ Your runs should achieve \textbf{at least 98\%} test accuracy.
 
 
 \end{Q}
+
+%%% Local Variables:
+%%% TeX-master: "../hw.tex"
+%%% End:

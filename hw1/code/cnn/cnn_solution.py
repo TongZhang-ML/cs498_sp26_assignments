@@ -330,7 +330,7 @@ def fit_and_evaluate(
     eval_fn: Callable[[nn.Module], Tuple[float, float]],
 ) -> RunResult:
     """
-    Implement the function based on the following description.
+    This function should be hidden from the students.
 
     Train a model for multiple epochs and evaluate it after each epoch
     using a provided evaluation function.

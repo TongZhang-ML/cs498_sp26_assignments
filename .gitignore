@@ -1,3 +1,8 @@
 **/data/
 **/build/
 **/release/
+*.aux
+*.out
+*.log
+*.gz
+hw.pdf
