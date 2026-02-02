@@ -6,3 +6,5 @@
 *.log
 *.gz
 hw.pdf
+*.pt
+*.pth
