@@ -3,7 +3,8 @@ import numpy as np
 
 # This imports the student's submitted file
 import fcn_solution as sol
-
+from torch.utils.data import DataLoader, TensorDataset
+from fcn_solution import MLP, evaluate
 
 # =========================================================
 # Helpers
@@ -79,81 +80,161 @@ def test_scaler():
 # ---------------------------------------------------------
 # 4. Train loader shuffle
 # ---------------------------------------------------------
-def test_train_loader_shuffle():
-    X, y = make_toy_data()
+def test_train_loader_batch_and_drop_last():
+    n = 65
+    batch_size = 16
+    X, y = make_toy_data(n=n)
 
-    loader = sol.make_train_loader(X, y, batch_size=16)
+    loader = sol.make_train_loader(X, y, batch_size=batch_size)
 
-    # DataLoader does not expose shuffle flag directly.
-    # Instead we inspect the sampler type.
-    from torch.utils.data import RandomSampler
+    sizes = [xb.size(0) for xb, _ in loader]
 
-    assert isinstance(loader.sampler, RandomSampler), \
-        "Training loader should shuffle (use RandomSampler)"
+    # full batches must equal batch_size
+    for s in sizes[:-1]:
+        assert s == batch_size
+
+    # last batch must exist and be partial
+    assert sizes[-1] == n % batch_size
+
+    # total samples must match exactly
+    assert sum(sizes) == n
+
 
 
 # ---------------------------------------------------------
 # 5. Training reduces loss
 # ---------------------------------------------------------
-def test_training_step():
+def test_train_one_epoch_core_behavior():
+    """
+    Tests:
+      1) parameters update
+      2) loss averaged per-example
+      3) training decreases loss
+    """
+    import torch
+    import torch.nn as nn
+    from torch.utils.data import TensorDataset, DataLoader
+
     torch.manual_seed(0)
 
-    X, y = make_toy_data()
-    loader = sol.make_train_loader(X, y, batch_size=32)
+    n = 33
+    X = torch.randn(n, 2)
+
+    # FIX: match (B,1) shape for BCEWithLogits
+    y = (X[:, 0] + X[:, 1] > 0).float().unsqueeze(1)
+
+    loader = DataLoader(TensorDataset(X, y), batch_size=16, shuffle=False)
+
+    model = nn.Linear(2, 1)
+    opt = torch.optim.SGD(model.parameters(), lr=0.2)
 
     device = torch.device("cpu")
 
-    model = sol.MLP(6, 16)
-    opt = sol.make_optimizer(model.parameters(), lr=0.1, weight_decay=0.0)
+    # ---- 1) parameters must change ----
+    before = [p.detach().clone() for p in model.parameters()]
 
-    loss1 = sol.train_one_epoch(model, loader, opt, "logistic_regression", device)
-    loss2 = sol.train_one_epoch(model, loader, opt, "logistic_regression", device)
+    loss1 = sol.train_one_epoch(model, loader, opt,
+                                "logistic_regression", device)
 
-    assert loss2 < loss1, "Loss should decrease after training"
+    after = list(model.parameters())
+
+    assert any(not torch.allclose(b, a) for b, a in zip(before, after)), \
+        "Parameters did not update"
+
+    # ---- 2) training decreases loss ----
+    loss2 = sol.train_one_epoch(model, loader, opt,
+                                "logistic_regression", device)
+
+    assert loss2 < loss1
+
+    # ---- 3) per-example averaging ----
+    opt = torch.optim.SGD(model.parameters(), lr=0.0)
+
+    true_loss = sol.compute_loss(model(X), y, "logistic_regression").item()
+
+    returned_loss = sol.train_one_epoch(model, loader, opt,
+                                       "logistic_regression", device)
+
+    assert abs(true_loss - returned_loss) < 1e-6
 
 
-# ---------------------------------------------------------
-# 6. Evaluate works
-# ---------------------------------------------------------
-def test_evaluate():
-    X, y = make_toy_data()
 
-    loader = sol.make_test_loader(X, y, batch_size=32)
+def test_accuracy():
+    """
+    Loads saved models and evaluates them on the hidden/private test set.
+    Tests both:
+        - least squares model
+        - logistic regression model
+    """
 
-    model = sol.MLP(6, 8)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    loss, acc = sol.evaluate(model, loader, "logistic_regression", torch.device("cpu"))
+    # -------------------------
+    # load hidden test data once
+    # -------------------------
+    test_path = "data/test.csv"
+    X_test, y_test = sol.load_csv(test_path)
 
-    assert 0 <= acc <= 1, "Accuracy must be in [0,1]"
-    assert loss >= 0, "Loss must be non-negative"
+    model_files = [
+        "mlp_least_squares.pt",
+        "mlp_logistic_regression.pt",
+    ]
 
+    loss_thres = [0.1, 0.6]
+    acc_thre = [0.75, 0.75]
 
-# ---------------------------------------------------------
-# 7. Cross-validation pipeline runs
-# ---------------------------------------------------------
-def test_cross_validation_runs():
-    X, y = make_toy_data(120)
+    for idx, path in enumerate(model_files):
+        # -------------------------
+        # load checkpoint
+        # -------------------------
+        ckpt = torch.load(path, map_location=device)
+        cfg = ckpt["config"]
 
-    cfg = sol.TrainConfig(
-        loss_name="logistic_regression",
-        weight_decay=0.0,
-        hidden_dim=8,
-        batch_size=16,
-        epochs=1,
-        seed=0
-    )
+        # -------------------------
+        # rebuild model
+        # -------------------------
+        model = sol.MLP(
+            input_dim=X_test.shape[1],
+            hidden_dim=cfg["hidden_dim"],
+        ).to(device)
 
-    best_lr, lr_map, latex = sol.cross_validation(
-        X,
-        y,
-        learning_rates=[0.01, 0.1],
-        cfg=cfg,
-        k_folds=2,
-        device=torch.device("cpu")
-    )
+        model.load_state_dict(ckpt["model_state"])
+        model.eval()
 
-    assert best_lr in lr_map
-    assert isinstance(latex, str)
+        # -------------------------
+        # apply saved scaling
+        # -------------------------
+        X_scaled = (X_test - ckpt["scaler_mean"]) / ckpt["scaler_scale"]
+
+        # -------------------------
+        # loader
+        # -------------------------
+        test_loader = DataLoader(
+            TensorDataset(
+                torch.tensor(X_scaled, dtype=torch.float32),
+                torch.tensor(y_test, dtype=torch.float32),
+            ),
+            batch_size=cfg["batch_size"],
+            shuffle=False,
+        )
+
+        # -------------------------
+        # evaluate
+        # -------------------------
+        test_loss, test_acc = sol.evaluate(
+            model,
+            test_loader,
+            cfg["loss_name"],
+            device,
+        )
+
+        # -------------------------
+        # thresholds
+        # -------------------------
+        print(test_acc, test_loss)
+        assert test_acc > acc_thre[idx], f"{path}: accuracy too low"
+        assert test_loss < loss_thres[idx], f"{path}: loss too high"
+
 
 
 # =========================================================
@@ -161,11 +242,11 @@ def test_cross_validation_runs():
 # =========================================================
 
 ALL_TESTS = [
-    ("Model architecture", 50, test_model_architecture),
-    #("Optimizer", 10, test_optimizer),
-    #("Scaler", 10, test_scaler),
-    #("Train loader shuffle", 10, test_train_loader_shuffle),
-    #("Training loop", 25, test_training_step),
-    #("Evaluate()", 10, test_evaluate),
+    ("Model architecture", 5, test_model_architecture),
+    ("Optimizer", 5, test_optimizer),
+    ("Scaler", 5, test_scaler),
+    ("Train loader shuffle", 5, test_train_loader_batch_and_drop_last),
+    ("Training loop", 5, test_train_one_epoch_core_behavior),
+    ("Evaluate()", 20, test_accuracy),
     #("Cross validation pipeline", 15, test_cross_validation_runs),
 ]

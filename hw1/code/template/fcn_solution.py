@@ -19,7 +19,6 @@ from torch.utils.data import DataLoader, TensorDataset
 
 from sklearn.model_selection import KFold
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
 
 
 # ----------------------------
@@ -62,22 +61,12 @@ class MLP(nn.Module):
       - Output is a real number (logit for logistic regression, and regresion value for least squares)
     """
     def __init__(self, input_dim: int, hidden_dim: int):
-        # Implement the function based on the description of the model
-        super().__init__()
-
-        self.fc1 = nn.Linear(input_dim, hidden_dim, bias=True)
-        self.fc2 = nn.Linear(hidden_dim, hidden_dim, bias=False)
-        self.fc3 = nn.Linear(hidden_dim, hidden_dim, bias=False)
-        self.out = nn.Linear(hidden_dim, 1)
-
+        # Implement based on the class description
+        pass
+    
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # Implement the function based on the description of the model
-        z = F.relu(self.fc1(x))
-        z = F.relu(self.fc2(z))
-        z = F.relu(self.fc3(z))
-        output = self.out(z).squeeze(-1)
-        return output
-
+        pass
 
 # ----------------------------
 # Loss + metrics
@@ -154,12 +143,7 @@ def make_optimizer(params,  lr: float, weight_decay: float) -> torch.optim.Optim
     The function must return an instance of torch.optim.SGD()
     No other optimizer should be used.
     """
-    return torch.optim.SGD(
-        params,
-        lr=lr,
-        momentum=0.9,
-        weight_decay=weight_decay,
-      )
+    pass
 
 
 # ----------------------------
@@ -198,9 +182,7 @@ def fit_scaler(X_train: np.ndarray) -> StandardScaler:
     - The returned scaler should be reused to transform training,
       validation, and test data to ensure consistent feature scaling.
     """
-    scaler = StandardScaler()
-    scaler.fit(X_train)
-    return scaler
+    pass
 
 
 def apply_scaler(scaler: StandardScaler, X: np.ndarray) -> np.ndarray:
@@ -242,9 +224,7 @@ def make_train_loader(X: np.ndarray, y: np.ndarray, batch_size: int) -> DataLoad
     In your solution, briefly explain (in comments or in your write-up)
     why shuffling is or is not appropriate for training in this setting.
     """
-    ds = TensorDataset(torch.tensor(X, dtype=torch.float32),
-                       torch.tensor(y, dtype=torch.float32))
-    return DataLoader(ds, batch_size=batch_size, shuffle=True, drop_last=False)
+    pass
 
 
 def make_test_loader(X: np.ndarray, y: np.ndarray, batch_size: int) -> DataLoader:
@@ -308,26 +288,7 @@ def train_one_epoch(
 
       3. Accumulate and return the average loss over all training examples.
     """
-    model.train()
-    total_loss = 0.0
-    total_n = 0
-
-    for xb, yb in loader:
-        xb = xb.to(device)
-        yb = yb.to(device)
-
-        output = model(xb)
-        loss = compute_loss(output, yb, loss_name)
-
-        optimizer.zero_grad(set_to_none=True)
-        loss.backward()
-        optimizer.step()
-
-        bs = xb.shape[0]
-        total_loss += float(loss.item()) * bs
-        total_n += bs
-
-    return total_loss / max(total_n, 1)
+    pass
 
 
 @torch.no_grad()
@@ -471,18 +432,18 @@ def train_final_and_test(
     test_loss, test_acc = evaluate(model, test_loader, cfg.loss_name, device)
     print(f"\nTest results ({cfg.loss_name}): loss={test_loss:.4f}, accuracy={test_acc:.4f}\n")
 
-    os.makedirs(os.path.dirname(save_path) or ".", exist_ok=True)
-    torch.save(
-       {
-           "model_state": model.state_dict(),
-           "scaler_mean": scaler.mean_,
-           "scaler_scale": scaler.scale_,
-           "config": cfg.__dict__,
-           "best_lr": best_lr,
-       },
-       save_path,
-    )
-    print(f"Saved model+scaler to {save_path}\n")
+    #os.makedirs(os.path.dirname(save_path) or ".", exist_ok=True)
+    #torch.save(
+    #    {
+    #        "model_state": model.state_dict(),
+    #        "scaler_mean": scaler.mean_,
+    #        "scaler_scale": scaler.scale_,
+    #        "config": cfg.__dict__,
+    #        "best_lr": best_lr,
+    #    },
+    #    save_path,
+    #)
+    #print(f"Saved model+scaler to {save_path}\n")
 
 
 # ----------------------------
@@ -491,11 +452,14 @@ def train_final_and_test(
 
 def main() -> None:
     train_path = "data/train.csv"
+    test_path = "data/test.csv"
     if not os.path.exists(train_path):
         raise FileNotFoundError(f"Could not find {train_path}.")
+    if not os.path.exists(test_path):
+        raise FileNotFoundError(f"Could not find {test_path}.")
 
-    X, y = load_csv(train_path)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    X_train, y_train = load_csv(train_path)
+    X_test, y_test = load_csv(test_path)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

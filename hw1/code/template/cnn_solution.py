@@ -12,7 +12,7 @@ from typing import Callable, List, Tuple
 
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
 import matplotlib.pyplot as plt
@@ -97,38 +97,37 @@ class MNISTConvNet(nn.Module):
 
     Notes
     -----
-    - All convolutions preserve spatial size due to padding = 1.
+    - All convolutions should preserve spatial size.
     - Max pooling reduces height and width by a factor of 2.
     - Students should verify all intermediate tensor shapes.
     """
     def __init__(self, use_bn: bool = True):
-        # Implement based on the class description
         super().__init__()
+        # Implement based on the class description and dont change the given class attribute names
+        self.conv1 = None
+        self.bn1 = None
+        self.relu1 = None
+        self.pool1 = None
 
-        self.conv1 = nn.Conv2d(1, 16, kernel_size=3, padding=1, bias=True)
-        self.bn1 = nn.BatchNorm2d(16) if use_bn else nn.Identity()
-        self.relu1 = nn.ReLU()
-        self.pool1 = nn.MaxPool2d(kernel_size=2)
+        self.conv2 = None
+        self.bn2 = None
+        self.relu2 = None
+        self.pool2 = None
 
-        self.conv2 = nn.Conv2d(16, 32, kernel_size=3, padding=1, bias=True)
-        self.bn2 = nn.BatchNorm2d(32) if use_bn else nn.Identity()
-        self.relu2 = nn.ReLU()
-        self.pool2 = nn.MaxPool2d(kernel_size=2)
+        self.flatten = None
+        self.fc1 = None
+        self.relu3 = None
+        self.fc2 = None
 
-        self.flatten = nn.Flatten()
-        self.fc1 = nn.Linear(32 * 7 * 7, 128)
-        self.relu3 = nn.ReLU()
-        self.fc2 = nn.Linear(128, 10)
+        pass
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        x: Input tensor of shape (N, 1, 28, 28)
+        returns: Output tensor of shape (N, 10)
+        """
         # Implement based on the class description
-        x = self.pool1(self.relu1(self.bn1(self.conv1(x))))
-        x = self.pool2(self.relu2(self.bn2(self.conv2(x))))
-        x = self.flatten(x)
-        x = self.relu3(self.fc1(x))
-        x = self.fc2(x)
-        return x
-
+        pass
 
 class ResBlock(nn.Module):
     """
@@ -179,20 +178,21 @@ class ResBlock(nn.Module):
       and output must have the same shape.
     """
     def __init__(self, C: int):
-        # Implement based on the class description
         super().__init__()
-        self.conv1 = nn.Conv2d(C, C, kernel_size=3, padding=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(C)
-        self.relu = nn.ReLU()
-        self.conv2 = nn.Conv2d(C, C, kernel_size=3, padding=1, bias=False)
-        self.bn2 = nn.BatchNorm2d(C)
+        # Implement based on the class description and dont change the given class attribute names
+        self.conv1 = None
+        self.bn1 = None
+        self.relu = None
+        self.conv2 = None
+        self.bn2 = None
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        x: Input tensor of shape (N, C, H, W)
+        returns: Output tensor of shape (N, C, H, W)
+        """
         # Implement based on the class description
-        y = self.relu(self.bn1(self.conv1(x)))
-        y = self.bn2(self.conv2(y))
-        return self.relu(x + y)
-
+        pass
 
 class MNISTResNet(nn.Module):
     """
@@ -241,29 +241,17 @@ class MNISTResNet(nn.Module):
       before the final classifier.
     """
     def __init__(self, C: int = 16, num_blocks: int = 1):
-        # Implement based on the class description
         super().__init__()
-
-        self.conv = nn.Conv2d(1, C, kernel_size=3, stride=2, padding=1, bias=False)
-        self.bn = nn.BatchNorm2d(C)
-        self.relu = nn.ReLU()
-        self.pool = nn.MaxPool2d(kernel_size=2)
-
-        self.blocks = nn.ModuleList([ResBlock(C) for _ in range(num_blocks)])
-
-        self.avg = nn.AdaptiveAvgPool2d((1, 1))
-        self.flatten = nn.Flatten()
-        self.fc = nn.Linear(C, 10)
+        # Implement based on the class description and dont change the given class attribute names
+        pass
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        x: Input tensor of shape (N, 1, 28, 28)
+        returns: Output tensor of shape (N, 10)
+        """
         # Implement based on the class description
-        x = self.pool(self.relu(self.bn(self.conv(x))))
-        for block in self.blocks:
-            x = block(x)
-        x = self.avg(x)
-        x = self.flatten(x)
-        x = self.fc(x)
-        return x
+        pass
 
 
 # ----------------------------
@@ -279,8 +267,8 @@ def make_datasets() -> Tuple[torch.utils.data.Dataset, torch.utils.data.Dataset]
         transforms.Normalize((0.5,), (0.5,)),
     ])
 
-    total_data = datasets.MNIST(root="./data", train=True, download=True, transform=transform)
-    train_set, test_set = random_split(total_data, [0.8, 0.2])
+    train_set = datasets.MNIST(root="./data", train=True, download=True, transform=transform)
+    test_set = datasets.MNIST(root="./data", train=False, download=True, transform=transform)
     return train_set, test_set
 
 
@@ -581,9 +569,6 @@ def main() :
         )
         report_result(r4,f"resnet{num_blocks}x16_sgd")
         check_result(r4,m4,eval_fn)
-
-        if num_blocks == 3:
-            torch.save(m4.state_dict(), f"resnet{num_blocks}x16_sgd.pth")
 
 
 

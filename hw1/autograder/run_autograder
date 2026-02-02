@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 cp /autograder/submission/cnn_solution.py /autograder/source/cnn_solution.py
 cp /autograder/submission/fcn_solution.py /autograder/source/fcn_solution.py
+cp /autograder/submission/mlp_least_squares.pt /autograder/source/mlp_least_squares.pt
+cp /autograder/submission/resnet3x16_sgd.pth /autograder/source/resnet3x16_sgd.pth
+cp /autograder/submission/mlp_logistic_regression.pt /autograder/source/mlp_logistic_regression.pt
 
 cd /autograder/source
 python3 run_tests.py --gradescope

@@ -88,7 +88,7 @@ def run_test(suite_name, test_name, points, fn, timeout):
 def main(args):
 
     suites = [
-        ("FCN", FCN_TESTS),
+        #("FCN", FCN_TESTS),
         ("CNN", CNN_TESTS),
     ]
 
@@ -123,7 +123,7 @@ if __name__ == "__main__":
 
     try:
         output = main(args)
-
+        print(output)
         if args.gradescope:
             with open("results.json", "w") as f:
                 json.dump(output, f)
@@ -134,7 +134,7 @@ if __name__ == "__main__":
     except Exception:
         message = traceback.format_exc()
         print("Autograder crashed:\n", message)
-
+        print(message)
         if args.gradescope:
             with open("results.json", "w") as f:
                 json.dump(fail(message), f)
