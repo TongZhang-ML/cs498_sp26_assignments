@@ -16,6 +16,7 @@ from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
 import matplotlib.pyplot as plt
+from torch.utils.data import random_split
 
 
 # ----------------------------
@@ -267,8 +268,8 @@ def make_datasets() -> Tuple[torch.utils.data.Dataset, torch.utils.data.Dataset]
         transforms.Normalize((0.5,), (0.5,)),
     ])
 
-    train_set = datasets.MNIST(root="./data", train=True, download=True, transform=transform)
-    test_set = datasets.MNIST(root="./data", train=False, download=True, transform=transform)
+    data = datasets.MNIST(root="./data", train=True, download=True, transform=transform)
+    train_set, test_set = random_split(data, [0.8, 0.2])
     return train_set, test_set
 
 
@@ -318,8 +319,6 @@ def fit_and_evaluate(
     eval_fn: Callable[[nn.Module], Tuple[float, float]],
 ) -> RunResult:
     """
-    This function should be hidden from the students.
-
     Train a model for multiple epochs and evaluate it after each epoch
     using a provided evaluation function.
 
@@ -399,12 +398,7 @@ def fit_and_evaluate(
           - test_losses : List[float]
           - test_accs : List[float]
     """
-    train_loader = DataLoader(
-        train_set,
-        batch_size=batch_size,
-        shuffle=True,
-        num_workers=0,
-    )
+    
 
     loss_fn = nn.CrossEntropyLoss()
 
@@ -412,31 +406,7 @@ def fit_and_evaluate(
     test_losses: List[float] = []
     test_accs: List[float] = []
 
-    for _ in range(epochs):
-        # ---- training phase ----
-        model.train()
-        total_loss = 0.0
-        total = 0
-
-        for x, y in train_loader:
-            optimizer.zero_grad(set_to_none=True)
-            logits = model(x)
-            loss = loss_fn(logits, y)
-            loss.backward()
-            optimizer.step()
-
-            bs = x.size(0)
-            total_loss += float(loss.item()) * bs
-            total += bs
-
-        train_loss = total_loss / max(total, 1)
-
-        # ---- evaluation phase (black box) ----
-        test_loss, test_acc = eval_fn(model)
-
-        train_losses.append(train_loss)
-        test_losses.append(test_loss)
-        test_accs.append(test_acc)
+    # Implement the training and evaluation loop as described in the docstring 
 
     return RunResult(
         name="",
@@ -501,10 +471,10 @@ def check_result(result, model, eval_fn, atol=1e-6):
 
 def main() :
 
-    # Datasets (train_set is passed into fit_and_evaluate; test_set is hidden inside eval_fn)
+    # Datasets
     train_set, test_set = make_datasets()
 
-    # Evaluation function that closes over test_set (students do not see / do not receive test_set)
+    # Evaluation function that closes over val_set
     def eval_fn(model: nn.Module) -> Tuple[float, float]:
         return eval_on_testset(model=model, test_set=test_set, batch_size=32)
 
@@ -569,6 +539,9 @@ def main() :
         )
         report_result(r4,f"resnet{num_blocks}x16_sgd")
         check_result(r4,m4,eval_fn)
+        
+        if num_blocks == 3:
+            torch.save(m4.state_dict(), f"resnet{num_blocks}x16_sgd.pth") 
 
 
 

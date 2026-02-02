@@ -17,7 +17,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset
 
-from sklearn.model_selection import KFold
+from sklearn.model_selection import KFold, train_test_split
 from sklearn.preprocessing import StandardScaler
 
 
@@ -288,6 +288,9 @@ def train_one_epoch(
 
       3. Accumulate and return the average loss over all training examples.
     """
+    train_loss = 0.0
+    total_n = 0
+
     pass
 
 
@@ -432,18 +435,18 @@ def train_final_and_test(
     test_loss, test_acc = evaluate(model, test_loader, cfg.loss_name, device)
     print(f"\nTest results ({cfg.loss_name}): loss={test_loss:.4f}, accuracy={test_acc:.4f}\n")
 
-    #os.makedirs(os.path.dirname(save_path) or ".", exist_ok=True)
-    #torch.save(
-    #    {
-    #        "model_state": model.state_dict(),
-    #        "scaler_mean": scaler.mean_,
-    #        "scaler_scale": scaler.scale_,
-    #        "config": cfg.__dict__,
-    #        "best_lr": best_lr,
-    #    },
-    #    save_path,
-    #)
-    #print(f"Saved model+scaler to {save_path}\n")
+    os.makedirs(os.path.dirname(save_path) or ".", exist_ok=True)
+    torch.save(
+       {
+           "model_state": model.state_dict(),
+           "scaler_mean": scaler.mean_,
+           "scaler_scale": scaler.scale_,
+           "config": cfg.__dict__,
+           "best_lr": best_lr,
+       },
+       save_path,
+    )
+    print(f"Saved model+scaler to {save_path}\n")
 
 
 # ----------------------------
@@ -458,8 +461,8 @@ def main() -> None:
     if not os.path.exists(test_path):
         raise FileNotFoundError(f"Could not find {test_path}.")
 
-    X_train, y_train = load_csv(train_path)
-    X_test, y_test = load_csv(test_path)
+    X, y = load_csv(train_path)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
