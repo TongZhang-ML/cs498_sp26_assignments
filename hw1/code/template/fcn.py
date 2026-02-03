@@ -406,7 +406,7 @@ def load_csv(path: str) -> Tuple[np.ndarray, np.ndarray]:
 
 
 # ----------------------------
-# Final train on all train.csv, eval on test.csv
+# Final train on all X_train, eval on X_test
 # ----------------------------
 
 def train_final_and_test(
@@ -454,14 +454,11 @@ def train_final_and_test(
 # ----------------------------
 
 def main() -> None:
-    train_path = "data/train.csv"
-    test_path = "data/test.csv"
-    if not os.path.exists(train_path):
-        raise FileNotFoundError(f"Could not find {train_path}.")
-    if not os.path.exists(test_path):
-        raise FileNotFoundError(f"Could not find {test_path}.")
+    data_path = "data/train.csv"
+    if not os.path.exists(data_path):
+        raise FileNotFoundError(f"Could not find {data_path}.")
 
-    X, y = load_csv(train_path)
+    X, y = load_csv(data_path)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

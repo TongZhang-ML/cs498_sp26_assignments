@@ -275,14 +275,14 @@ def test_accuracy_ResNet():
 # =========================================================
 
 ALL_TESTS = [
-    ("ConvNet structure", 5, test_convnet_structure),
-    ("ConvNet forward shape", 5, test_convnet_forward_shape),
-    ("ResBlock Structure", 5, test_resblock_implementation),
-    ("ResBlock shape", 5, test_resblock_shape),
-    ("ResBlock residual math", 5, test_resblock_residual_identity),
-    ("ResNet structure", 5, test_resnet_structure),
+    ("ConvNet structure", 3, test_convnet_structure),
+    ("ConvNet forward shape", 3, test_convnet_forward_shape),
+    ("ResBlock Structure", 3, test_resblock_implementation),
+    ("ResBlock shape", 1, test_resblock_shape),
+    ("ResBlock residual math", 1, test_resblock_residual_identity),
+    ("ResNet structure", 3, test_resnet_structure),
     ("fit_and_evaluate pipeline", 5, test_fit_and_evaluate_runs),
-    ("Accuracy ResNet", 20, test_accuracy_ResNet),
+    ("Accuracy ResNet", 5, test_accuracy_ResNet),
     #("Shuffle enabled", 5, test_shuffle_used),
     #("Training reduces loss", 10, test_training_decreases_loss),
 ]
