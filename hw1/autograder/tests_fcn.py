@@ -2,9 +2,8 @@ import torch
 import numpy as np
 
 # This imports the student's submitted file
-import fcn_solution as sol
+import fcn as sol
 from torch.utils.data import DataLoader, TensorDataset
-from fcn_solution import MLP, evaluate
 
 # =========================================================
 # Helpers
@@ -187,7 +186,7 @@ def test_accuracy():
         # -------------------------
         # load checkpoint
         # -------------------------
-        ckpt = torch.load(path, map_location=device)
+        ckpt = torch.load(path, map_location=device, weights_only=False)
         cfg = ckpt["config"]
 
         # -------------------------
@@ -231,7 +230,6 @@ def test_accuracy():
         # -------------------------
         # thresholds
         # -------------------------
-        print(test_acc, test_loss)
         assert test_acc > acc_thre[idx], f"{path}: accuracy too low"
         assert test_loss < loss_thres[idx], f"{path}: loss too high"
 

@@ -15,9 +15,8 @@ import json
 import traceback
 import argparse
 import func_timeout
-
-from tests_fcn import ALL_TESTS as FCN_TESTS
-from tests_cnn import ALL_TESTS as CNN_TESTS
+import importlib
+import os
 
 
 # ======================================================
@@ -77,7 +76,7 @@ def run_test(suite_name, test_name, points, fn, timeout):
             name=full_name,
             score=0,
             max_score=points,
-            output=traceback.format_exc()
+            output="failed"
         )
 
 
@@ -85,17 +84,63 @@ def run_test(suite_name, test_name, points, fn, timeout):
 # Main
 # ======================================================
 
+def load_suite(module_name):
+    """
+    Lazy import of test module.
+    Prevents crashes if student file is missing.
+    """
+    module = importlib.import_module(module_name)
+    return module.ALL_TESTS
+
+
 def main(args):
 
-    suites = [
-        #("FCN", FCN_TESTS),
-        ("CNN", CNN_TESTS),
+    suite_specs = [
+        ("FCN", "tests_fcn", "fcn.py"),
+        ("CNN", "tests_cnn", "cnn.py"),
     ]
 
     results = []
     total_score = 0
 
-    for suite_name, suite in suites:
+    for suite_name, test_module_name, required_file in suite_specs:
+
+        # --------------------------------------------------
+        # Check submission file FIRST
+        # --------------------------------------------------
+        if not os.path.isfile(required_file):
+
+            msg = (
+                f"Missing required submission file: {required_file}\n"
+                f"Please submit {required_file} to run the {suite_name} tests."
+            )
+
+            # We still want correct max score → load tests only to count points
+            try:
+                suite = load_suite(test_module_name)
+                max_points = sum(points for _, points, _ in suite)
+            except Exception:
+                max_points = 0
+
+            results.append(
+                make_result(
+                    name=f"{suite_name} :: FILE MISSING",
+                    score=0,
+                    max_score=max_points,
+                    output=msg
+                )
+            )
+
+            if not args.gradescope:
+                print(f"{suite_name}: SKIPPED (missing {required_file})")
+
+            continue
+
+        # --------------------------------------------------
+        # Now safe to import tests
+        # --------------------------------------------------
+        suite = load_suite(test_module_name)
+
         for name, points, fn in suite:
             result = run_test(suite_name, name, points, fn, args.timeout)
             results.append(result)
@@ -108,6 +153,7 @@ def main(args):
         "score": total_score,
         "tests": results
     }
+
 
 
 # ======================================================

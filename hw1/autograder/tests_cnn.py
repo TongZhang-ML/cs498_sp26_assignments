@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from typing import Tuple
-import cnn_solution as sol
+import cnn as sol
 from torchvision import datasets, transforms
 
 # =========================================================
