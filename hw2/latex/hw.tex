@@ -13,6 +13,15 @@
 
 \input{myheaders.tex}
 
+\tcbuselibrary{listings,breakable}
+
+\newtcblisting{solutionlisting}{
+  breakable,
+  colback=white,
+  colframe=black,
+  listing only,
+  listing options={basicstyle=\ttfamily\small, columns=fullflexible, keepspaces=true}
+}
 
 \usepackage{caption}
 

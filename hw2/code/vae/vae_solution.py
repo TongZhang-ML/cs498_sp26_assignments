@@ -535,11 +535,12 @@ def load_checkpoint(path: str, map_location: torch.device | str) -> Tuple[VAE, D
 
 def parse_args() -> RunConfig:
     p = argparse.ArgumentParser()
-    p.add_argument("--mode", type=int, default=1)  # 1=train, 2=load+eval
+    p.add_argument("--mode", type=str, default="train")  
     args = p.parse_args()
 
     cfg = RunConfig()
-    if args.mode == 2:
+    if args.mode != "train":
+        # eval mode
         cfg.load_path = cfg.save_path  # reuse default save_path
 
     return cfg
@@ -571,7 +572,7 @@ def main() -> None:
     x_dim = num_classes
 
     # ----------------------------
-    # Mode 2: autograder (load+eval)
+    # eval mode: autograder (load+eval)
     # ----------------------------
     if cfg.load_path is not None:
         model, saved = load_checkpoint(cfg.load_path, map_location=device)
@@ -609,7 +610,7 @@ def main() -> None:
             )
 
     # ----------------------------
-    # Mode 1: train + save ckpt with final losses
+    # train mode (student): train + save ckpt with final losses
     # ----------------------------
     else:
         model = VAE(z_dim=cfg.z_dim, x_dim=x_dim).to(device)

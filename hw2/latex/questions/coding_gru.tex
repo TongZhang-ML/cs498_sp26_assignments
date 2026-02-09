@@ -68,13 +68,13 @@ default location.
 \hline
 Config & $(e,h,\text{layers})$ & \#params (approx.) & Train loss & Val loss \\
 \hline
-A & $(192,384,1)$ & 29,664,145 & 2.6491 & 5.1283 \\
-B & $(256,256,2)$ & 26,571,345 & 4.2348 & 5.1755 \\
-C & $(128,512,1)$ & 33,200,849 & 2.5410 & 5.2402 \\
+A & $(192,384,1)$ & 29,664,145 & 2.7452 & 5.1277 \\
+B & $(256,256,2)$ & 26,571,345 & 4.4477 & 5.2975 \\
+C & $(128,512,1)$ & 33,200,849 & 2.8345 & 5.1938 \\
 \hline
 \multicolumn{5}{c}{Best config: A} \\
 \hline
-\end{tabular}
+  \end{tabular}
 \end{solution}
 
 \item \textbf{Text generation (10 points).}
@@ -85,12 +85,12 @@ After training, generate text using the provided prompt, and print the generated
 
 \begin{solution}
   [generation]
-Little Red-Cap said: ‘Here is discovered and
-live.’ The peasant ran: ‘Here is very well,
-         THE WILL NOT,
-       • You must have been?’ The
+Little Red-Cap went to see her grandmother.
 
-And the boy was the door she was so long
+The king said: ‘I have done a great me.’
+
+‘Took,’ said the man, ‘but a little girl is not seem to take the
+same?’ ‘Oh,’ said the father’s wife, ‘why
 \end{solution}
 
 \item \textbf{Hidden test evaluation (automatic). Affects grading (10
@@ -99,6 +99,20 @@ The autograder will evaluate your saved model on \texttt{test.txt} (hidden).
 This will not be reported to students during development.
 Your final score will depend on correctness of your implementation and the hidden test loss achieved by your submitted checkpoint.
 
+\begin{solution}
+  [eval]
+  number of model paramers = 29,664,145
+  train loss/token = 2.481587
+  val   loss/token = 5.127678
+  test  loss/token = 3.451968
+
+[generation]
+Little Red-Cap went to see her grandmother. The
+king said, ‘The better to me,’ said the man, ‘I have
+more of the country-b-beard!’ said she, ‘but to you have been a
+brought a man?’ said the
+little fish; but now the second son
+\end{solution}
 \end{enumerate}
 \end{Q}
 

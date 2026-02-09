@@ -343,7 +343,6 @@ def train_one_epoch(
     loader: DataLoader,
     optimizer: torch.optim.Optimizer,
     device: torch.device,
-    grad_clip: Optional[float],
 ) -> float:
     """
     Implement according to the following description.
@@ -366,7 +365,6 @@ def train_one_epoch(
       3. Compute cross-entropy loss between logits and targets y.
       4. Clear previous gradients.
       5. Backpropagate the loss using PyTorch autograd.
-      6. Optionally clip gradients to improve training stability.
       7. Update model parameters using the given optimizer.
 
     Loss accounting
@@ -390,9 +388,6 @@ def train_one_epoch(
         Optimizer used to update model parameters.
     device : torch.device
         Device on which training is performed (CPU or CUDA).
-    grad_clip : Optional[float]
-        Maximum gradient norm for gradient clipping.
-        If None or non-positive, gradient clipping is disabled.
 
     Returns
     -------
@@ -413,9 +408,6 @@ def train_one_epoch(
 
         optimizer.zero_grad(set_to_none=True)
         loss.backward()
-
-        if grad_clip is not None and grad_clip > 0:
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=grad_clip)
 
         optimizer.step()
 
@@ -608,7 +600,6 @@ class RunConfig:
     epochs: int = 10
     lr: float = 2e-3
     weight_decay: float = 1e-3
-    grad_clip: float = 1.0
 
     seed: int = 42
 
@@ -616,7 +607,7 @@ class RunConfig:
     chosen_preset: str = "best"  
 
     # generation
-    prompt: str = "Little Red-Cap said"
+    prompt: str = "Little Red-Cap went to see her grandmother."
     gen_max_new_tokens: int = 64
     gen_temperature: float = 0.5
 
@@ -656,7 +647,7 @@ def train_and_validate(
     --------
     Training should be performed by calling the helper function implemented earlier:
         train_loss = train_one_epoch(model=model, loader=train_loader, optimizer=optimizer,
-                                     device=device, grad_clip=cfg.grad_clip)
+                                     device=device)
     This function returns the average cross-entropy loss per token over the epoch.
 
     Evaluation
@@ -686,7 +677,7 @@ def train_and_validate(
     device : torch.device
         CPU or CUDA device for training and evaluation.
     cfg : RunConfig
-        Run hyperparameters (seq_len, batch_size, epochs, lr, weight_decay, grad_clip, ...).
+        Run hyperparameters (seq_len, batch_size, epochs, lr, weight_decay, ...).
     model_cfg : Dict
         Preset model hyperparameters. Expected keys include:
         "name", "emb_dim", "hidden_dim", "num_layers", "dropout".
@@ -754,7 +745,6 @@ def train_and_validate(
             loader=train_loader,
             optimizer=optimizer,
             device=device,
-            grad_clip=cfg.grad_clip,
         )
         dt = time.time() - t0
         print(f"[epoch {epoch:02d}] train loss/token = {train_loss:.4f}   time={dt:.1f}s")
@@ -771,12 +761,13 @@ def train_and_validate(
 
 def parse_args() -> RunConfig:
     p = argparse.ArgumentParser()
-    p.add_argument("--mode", type=int, default=1)  # 1=train, 2=load+eval
+    p.add_argument("--mode", type=str, default="train")  
     args = p.parse_args()
 
     cfg = RunConfig()
 
-    if args.mode == 2:
+    if args.mode != "train":
+        # eval mode
         cfg.load_path = cfg.save_path  # reuse default save_path
 
     return cfg
@@ -802,7 +793,7 @@ def main() -> None:
     pad_token_id = int(tokenizer.eos_token_id)
 
     # ------------------------------------------------------------
-    # Mode 2 (autograder): load checkpoint, compute train/val/test
+    # eval mode (autograder): load checkpoint, compute train/val/test
     # ------------------------------------------------------------
     if cfg.load_path is not None:
         model, saved_cfg = load_checkpoint(cfg.load_path, map_location=device)
@@ -854,7 +845,7 @@ def main() -> None:
         )
 
     # ------------------------------------------------------------
-    # Mode 1 (student): train on train, sweep on val, save checkpoint
+    # train mode (student): train on train, sweep on val, save checkpoint
     # ------------------------------------------------------------
     else:
         if not os.path.exists(cfg.train_path):
