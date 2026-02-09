@@ -1,0 +1,128 @@
+\begin{Q}
+\textbf{Conditional VAE on Binarized MNIST. 30 Points}
+
+In this problem, you will implement key components of a conditional variational auto-encoder (VAE) for \emph{binarized} MNIST.
+Each MNIST image is treated as binary pixels $y \in \{0,1\}^{28\times 28}$.
+We condition on a class label represented as a one-hot vector $x \in \R^{C}$, where $C$ is the number of classes used in the run (for example, $C=3$ if you train only on digits $\{0,1,2\}$).
+
+You are provided with a starter Python file \texttt{vae.py}.
+Your task is to fill in the functions marked ``Implement'' in the starter code and answer questions below.
+
+\medskip
+\noindent\textbf{Probability model.}
+We use a standard conditional latent-variable model:
+\[
+p_\theta(y\mid x) \;=\; \int p_\theta(y\mid x,z)\,p(z)\,dz,
+\qquad
+p(z)=\cN(0,I).
+\]
+The encoder (variational posterior) is diagonal Gaussian:
+\[
+q_\phi(z\mid x,y) \;=\; \cN\!\bigl(\mu_\phi(x,y),\,\mathrm{diag}(\sigma_\phi(x,y)^2)\bigr),
+\]
+where the encoder outputs $\mu$ and $\log\sigma^2$ (denoted \texttt{logvar} in code).
+
+The decoder uses a Bernoulli likelihood for pixels:
+\[
+  p_\theta(y\mid x,z) \;=\; \prod_{k=1}^{784} \mathrm{Bernoulli}\!\bigl(y_k;\ p_k\bigr),
+  \quad p_k = \frac{1}{1+ \exp(-[\dec_\theta(x,z)]_k)} ,
+\]
+where $\dec_\theta(x,z)\in\R^{784}$ are the decoder \emph{logits}.
+Note that $\mathrm{Bernoulli}\!\bigl(y_k;\ p_k\bigr)$ generates $y_k=1$ with probability $p_k$, and $y_k=0$ with probability $1-p_k$.
+In code, the decoder outputs logits of shape $(B,1,28,28)$.
+
+\medskip
+\noindent\textbf{Training objective.}
+You will minimize the negative ELBO:
+\[
+-\mathrm{ELBO}(x,y)
+\;=\;
+\underbrace{-\E_{z\sim q_\phi(z\mid x,y)} \log p_\theta(y\mid x,z)}_{\text{Bernoulli NLL}}
+\;+\;
+\underbrace{\mathrm{KL}\!\left(q_\phi(z\mid x,y)\,\Vert\,p(z)\right)}_{\text{Gaussian KL}}.
+\]
+
+\begin{enumerate}
+
+\item \textbf{Conditional decoder implementation (10 points).}
+Implement the conditional decoder network \texttt{Decoder} according to its class description.
+The decoder models $p_\theta(y\mid x,z)$ and must:
+(i) concatenate $(x,z)$, (ii) map to a feature map of shape $(B,32,7,7)$ using fully connected layers, and
+(iii) use transposed convolutions to output Bernoulli \emph{logits} of shape $(B,1,28,28)$.
+Do \emph{not} apply sigmoid in the decoder.
+
+\item \textbf{Loss terms: Bernoulli NLL and Gaussian KL (10 points).}
+Implement the following loss components according to the doc strings in the starter code.
+
+\begin{enumerate}
+\item \textbf{Bernoulli NLL from logits.}
+Given logits $\ell$ and binary targets $y\in\{0,1\}$, implement the per-sample negative log-likelihood
+(sum over pixels). Here $p_k=\sigma(\ell_k)$:
+\[
+-\log p_\theta(y\mid x,z)
+=
+\sum_{k=1}^{784} - \ln \mathrm{Bernoulli}\!\bigl(y_k;\ p_k\bigr) .
+\]
+Use \texttt{binary\_cross\_entropy\_with\_logits} for numerical stability.
+
+\item \textbf{KL for diagonal Gaussian vs.\ standard normal.}
+For $q(z)=\cN(\mu,\mathrm{diag}(\sigma^2))$ and $p(z)=\cN(0,I)$, implement the closed form
+(per sample, sum over latent dimensions):
+\[
+\mathrm{KL}(q\Vert p)
+=
+\frac12\sum_{j=1}^{d}
+\left(\mu_j^2 + \sigma_j^2 - \ln\sigma_j^2 - 1\right) .
+\]
+
+\item \textbf{Write down the negative ELBO for one data point (no points).}
+Write down the formula for negative ELBO according to the lecture notes for each data point $(x,y)$.
+
+\begin{solution}
+The formula for each data point $(x,y)$ is
+\[
+  \sum_{k=1}^{784} -\bigl[ y_k \ln p_k + (1-y_k)\ln(1-p_k)\bigr]
+  + \frac12\sum_{j=1}^{d}\left(\mu_j^2 + \sigma_j^2 - \ln\sigma_j^2 - 1\right),
+\]
+where
+\[
+  p_k = \frac{1}{1+ \exp(-[\dec_\theta(x,z)]_k)} , \qquad
+  [\mu_j, \ln \sigma_j^2] = [\enc_\phi(x,y)]_j .
+\]
+\end{solution}
+
+\end{enumerate}
+
+\item \textbf{Run training, report final loss, and generate images (10 points).}
+Run the training script in \texttt{mode=1} to train the conditional VAE and save a checkpoint.
+Then:
+\begin{enumerate}
+\item \textbf{Final loss report.}
+After training finishes, the script recomputes the final losses on the training set and test set
+(with the model in evaluation mode) and prints
+\(\text{loss}=\text{NLL}+\text{KL}\)
+along with the two components. Report the printed final train and test losses below.
+
+\item \textbf{Generated images.}
+Use the provided sampling utility to generate conditional samples and save them to
+\texttt{vae\_imgs.png}.
+
+
+\begin{solution}
+[final eval]
+  train loss=76.266430 (nll=58.576349, kl=17.690081)
+  test  loss=76.488966 (nll=58.795456, kl=17.693510)
+
+\includegraphics[width=0.8\textwidth]{figs/vae_imgs.png}  
+\end{solution}
+
+\item \textbf{Hidden evaluation (automatic).}
+The autograder will load your saved checkpoint and recompute train/test losses using the same code structure.
+Your score depends on correctness of your implementation and whether the saved checkpoint can be loaded and evaluated without errors.
+\end{enumerate}
+\end{enumerate}
+\end{Q}
+
+%%% Local Variables:
+%%% TeX-master: "../hw.tex"
+%%% End:

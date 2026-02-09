@@ -1,0 +1,107 @@
+\begin{Q}
+\textbf{GRU Language Model Training with GPT-2 Tokenizer. 70 Points}
+
+In this problem, you will implement and train a small GRU-based next-token language model for text generation.
+You will train on \texttt{train.txt}, tune your choice among a few prespecified model configurations using \texttt{val.txt}, and save a model checkpoint.
+The hidden \texttt{test.txt} will \emph{not} be given to students; it will be used by the autograder to evaluate your saved model.
+
+You are provided with a starter Python file \texttt{gru.py}.
+Your task is to fill in the functions marked ``Implement'' in the starter code and answer questions below.
+
+\medskip
+\noindent\textbf{Tokenizer.}
+Use the GPT-2 tokenizer from Hugging Face (\texttt{GPT2TokenizerFast.from\_pretrained("gpt2")}).
+Given a token ID sequence $(x_1,\ldots,x_T)$, the training target is the shifted sequence $(x_2,\ldots,x_{T+1})$ (next-token prediction).
+
+\medskip
+\noindent\textbf{Non-overlapping data loader.}
+When creating training examples, you must use \emph{non-overlapping} segments with sequence length $L$.
+That is, if the full token list is $(x_1,\ldots,x_N)$, then your dataset should use segments
+\[
+(x_1,\ldots,x_L),\ (x_{L+1},\ldots,x_{2L}),\ (x_{2L+1},\ldots,x_{3L}),\ \ldots
+\]
+and the corresponding next-token targets (shift by one within each segment).
+Do not use a sliding window with stride $1$.
+
+\begin{enumerate}
+
+\item \textbf{Tokenizer and text-to-IDs (10 points).}
+Implement \texttt{tokenize\_string(text, tokenizer)} which converts a
+string to a Python list of integer token IDs.
+Then use it inside \texttt{tokenize\_text(...)} together with \texttt{read\_text(...)} to load train.txt and val.txt.
+
+\item \textbf{Non-overlapping dataset (10 points).}
+Implement the dataset class (or functions) that constructs non-overlapping input/target segments of length $L$ from a token ID list.
+Your implementation must return pairs $(x,y)$ where $x,y\in\{0,1,\ldots,V-1\}^L$, and $y$ is the one-step shift of $x$ within the segment.
+
+\item \textbf{GRU language model (10 points).}
+Implement the model class:
+\[
+\mathrm{Embedding}(V,e)\ \to\ \mathrm{GRU}(e,h,\texttt{num\_layers})\ \to\ \mathrm{Linear}(h,V),
+\]
+where $V$ is the GPT-2 vocabulary size, $e$ is the embedding dimension,
+$h$ is the hidden size, and \texttt{num\_layers} is the number of stacked GRU layers.
+The GRU should use \texttt{batch\_first=True}.
+
+For an input batch of shape $(B,L)$ (token IDs), the model should output logits
+of shape $(B,L,V)$, where $B$ is the batch size and $L$ is the
+sequence length.
+
+\item \textbf{Training and evaluation (10 points).}
+Implement
+\texttt{train\_one\_epoch(...)} using cross-entropy loss averaged over all tokens in the batch.
+Your training loop must:
+(i) iterate over mini-batches,
+(ii) compute cross-entropy loss,
+(iii) backpropagate with PyTorch autograd, and
+(iv) update parameters using Adam (or AdamW).
+
+\item \textbf{Model selection on validation set (10 points).}
+Implement the function \texttt{train\_and\_validate(...)} based on the doc string.
+Run a small sweep over the prespecified configurations (all are
+``small'') and generate the \LaTeX\ table with these
+configurations. Report your results below. Save the best model to
+default location. 
+
+\begin{solution}
+  \begin{tabular}{ccccc}
+\hline
+Config & $(e,h,\text{layers})$ & \#params (approx.) & Train loss & Val loss \\
+\hline
+A & $(192,384,1)$ & 29,664,145 & 2.6491 & 5.1283 \\
+B & $(256,256,2)$ & 26,571,345 & 4.2348 & 5.1755 \\
+C & $(128,512,1)$ & 33,200,849 & 2.5410 & 5.2402 \\
+\hline
+\multicolumn{5}{c}{Best config: A} \\
+\hline
+\end{tabular}
+\end{solution}
+
+\item \textbf{Text generation (10 points).}
+Implement the function  \texttt{generate\_text(...)} based on the
+provided doc string. For reference the sequential generation process should be similar to the code provided with the
+lecture notes.
+After training, generate text using the provided prompt, and print the generated continuation.
+
+\begin{solution}
+  [generation]
+Little Red-Cap said: ‘Here is discovered and
+live.’ The peasant ran: ‘Here is very well,
+         THE WILL NOT,
+       • You must have been?’ The
+
+And the boy was the door she was so long
+\end{solution}
+
+\item \textbf{Hidden test evaluation (automatic). Affects grading (10
+    points).}
+The autograder will evaluate your saved model on \texttt{test.txt} (hidden).
+This will not be reported to students during development.
+Your final score will depend on correctness of your implementation and the hidden test loss achieved by your submitted checkpoint.
+
+\end{enumerate}
+\end{Q}
+
+%%% Local Variables:
+%%% TeX-master: "../hw.tex"
+%%% End:

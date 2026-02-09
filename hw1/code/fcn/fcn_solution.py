@@ -497,7 +497,14 @@ def main() -> None:
     X, y = load_csv(train_path)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+    elif torch.backends.mps.is_available():
+        device = torch.device("mps")
+    else:
+        device = torch.device("cpu")
+
+    print(f"[device] {device}")
 
     learning_rates = [0.001, 0.01, 0.10, 1.00, 10.0]
     k_folds = 5
