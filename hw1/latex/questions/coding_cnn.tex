@@ -50,7 +50,7 @@ Flatten gives $32\times 7\times 7 = 3136$ input features to the first
 \texttt{Linear} layer.
 \end{solution}
 
-\item  (12 points) Implement the baseline CNN model
+\item  (6 points) Implement the baseline CNN model
 \texttt{MNISTConvNet}.
 Your constructor should take a boolean flag \texttt{use\_bn} that turns BatchNorm on/off
 (when off, skip BatchNorm layers).
@@ -88,7 +88,7 @@ The shallow ResNet must use:
     In experiments, use $C=16$.
 
 \begin{enumerate}
-\item  (12 points) Implement the residual block 
+\item  (8 points) Implement the residual block 
 \texttt{ResBlock} and shallow ResNet \texttt{MNISTResNet}  as described above.
 \item  (3 points) \textbf{(written)}
   Consider an input feature map of shape $(C,H,W)$.  
@@ -137,9 +137,11 @@ output shape
 Run the following experiments on MNIST:
   Use \texttt{CrossEntropyLoss}. Train for 5 epochs (to keep runtime short).
 
-Report test accuracy for each run, and include a plot of epoch vs (train loss, test loss) for each run.
-Your runs should achieve \textbf{at least 98\%} test accuracy.
+Report validation accuracy for each run, and include a plot of epoch vs (train loss, validation loss) for each run.
+Your runs should achieve \textbf{at least 98\%} validation accuracy.
 \begin{enumerate}
+    \item (5 points) Implement the function fit\_and\_evaluate according to the provided docstring specifications. 
+
     \item (2 points) \textbf{(written)} Baseline CNN with \texttt{use\_bn=True}, trained
       with SGD.
       \begin{solution}
@@ -175,6 +177,15 @@ Your runs should achieve \textbf{at least 98\%} test accuracy.
         \end{center}
       \end{solution}
     \end{enumerate}
+  \item (5 points) Performance of resnet3x16\_sgd on hidden testset. This is not reported,
+  and will be evaluated based on accuracy achieved.
+
+  \begin{solution}
+    Test results (logistic\_regression): loss=0.3952, accuracy=0.8210
+
+    Test results (least\_squares): loss=0.0641, accuracy=0.8255
+
+  \end{solution}
 \end{enumerate}
 
 

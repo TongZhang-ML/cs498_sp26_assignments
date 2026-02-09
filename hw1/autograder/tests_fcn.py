@@ -240,11 +240,11 @@ def test_accuracy():
 # =========================================================
 
 ALL_TESTS = [
-    ("Model architecture", 5, test_model_architecture),
+    ("Model architecture", 10, test_model_architecture),
     ("Optimizer", 5, test_optimizer),
     ("Scaler", 5, test_scaler),
     ("Train loader shuffle", 5, test_train_loader_batch_and_drop_last),
-    ("Training loop", 5, test_train_one_epoch_core_behavior),
-    ("Evaluate()", 20, test_accuracy),
+    ("Training loop", 10, test_train_one_epoch_core_behavior),
+    ("Evaluate()", 5, test_accuracy),
     #("Cross validation pipeline", 15, test_cross_validation_runs),
 ]
