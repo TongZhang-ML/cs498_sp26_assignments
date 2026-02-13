@@ -1,0 +1,192 @@
+
+
+\usepackage{color}
+\usepackage{latexsym,amsmath,amsthm,amsfonts,amssymb}
+\usepackage{fancybox,graphicx}
+\usepackage{hyperref}
+\usepackage{subcaption}
+\usepackage{multirow}
+\usepackage{bbm}
+\usepackage{cleveref}
+\usepackage{bm}
+
+
+%\newcommand{\BlackBox}{\rule{1.5ex}{1.5ex}}
+%\newenvironment{proof}{\par\noindent{\bf Proof\ }}{\hfill\BlackBox\\[2mm]}
+
+
+% following loops stolen from djhsu
+\def\ddefloop#1{\ifx\ddefloop#1\else\ddef{#1}\expandafter\ddefloop\fi}
+
+% \rA, \rB, ..., 
+\def\ddef#1{\expandafter\def\csname r#1\endcsname{{\ensuremath{\mathbb{#1}}}}}
+\ddefloop ABCDEFGHIJKLMNOPQRSTUVWXYZ\ddefloop
+
+% \bfA, \bfB, ..., \bfa, \fbb
+\def\ddef#1{\expandafter\def\csname bf#1\endcsname{{\ensuremath{\mathbf{#1}}}}}
+\ddefloop ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\ddefloop
+
+% \bfalpha, \bfbeta, ...,  \bfGamma, \bfDelta, ...,
+\def\ddef#1{\expandafter\def\csname bf#1\endcsname{\ensuremath{{\mathbf{\csname #1\endcsname}}}}}
+\ddefloop {alpha}{beta}{gamma}{delta}{epsilon}{varepsilon}{zeta}{eta}{theta}{vartheta}{iota}{kappa}{lambda}{mu}{nu}{xi}{pi}{varpi}{rho}{varrho}{sigma}{varsigma}{tau}{upsilon}{phi}{varphi}{chi}{psi}{omega}{Gamma}{Delta}{Theta}{Lambda}{Xi}{Pi}{Sigma}{varSigma}{Upsilon}{Phi}{Psi}{Omega}{ell}\ddefloop
+
+  
+% \cA, \cB, ...
+\def\ddef#1{\expandafter\def\csname c#1\endcsname{{\ensuremath{\mathcal{#1}}}}}
+\ddefloop ABCDEFGHIJKLMNOPQRSTUVWXYZ\ddefloop
+
+% \vA, \vB, ..., \va, \vb, ...
+\def\ddef#1{\expandafter\def\csname v#1\endcsname{{\ensuremath{\boldsymbol{#1}}}}}
+\ddefloop ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\ddefloop
+
+% \valpha, \vbeta, ...,  \vGamma, \vDelta, ...,
+\def\ddef#1{\expandafter\def\csname v#1\endcsname{\ensuremath{{\boldsymbol{\csname #1\endcsname}}}}}
+\ddefloop {alpha}{beta}{gamma}{delta}{epsilon}{varepsilon}{zeta}{eta}{theta}{vartheta}{iota}{kappa}{lambda}{mu}{nu}{xi}{pi}{varpi}{rho}{varrho}{sigma}{varsigma}{tau}{upsilon}{phi}{varphi}{chi}{psi}{omega}{Gamma}{Delta}{Theta}{Lambda}{Xi}{Pi}{Sigma}{varSigma}{Upsilon}{Phi}{Psi}{Omega}{ell}\ddefloop
+
+
+\newcommand{\N}{{\cal N}}
+\newcommand{\Bl}{\mathrm{Bl}}
+\newcommand{\E}{\mathbb{E}}
+
+
+\newcommand{\prox}{\mathrm{prox}}
+\newcommand{\ind}{{\mathbbm{1}}}
+
+\newcommand{\dcg}{{\mathbf{DCG}}}
+\newcommand{\auc}{{\mathbf{T}}}
+\newcommand{\V}{\operatorname{Var}}
+\newcommand{\co}{\mbox{\sc co}}
+\newcommand{\trace}{\mathrm{trace}}
+\newcommand{\sign}{{\mathrm{sign}}}
+\newcommand{\dom}{{\mathrm{dom}}}
+\newcommand{\diagonal}{{\mathrm{diag}}}
+\newcommand{\KL}{{\mathrm{KL}}}
+\newcommand{\TV}{{\mathrm{TV}}}
+\newcommand{\MMD}{{\mathrm{MMD}}}
+\newcommand{\loss}{{f}}
+\newcommand{\modelfun}{{q}}
+\newcommand{\param}{{w}}
+\newcommand{\trunc}{{\mathrm{trunc}}}
+\newcommand{\gap}{{\mathrm{gap}}}
+\newcommand{\dv}{{\widetilde{\nabla}}}
+
+\newcommand{\enc}{\mathrm{enc}}
+\newcommand{\dec}{\mathrm{dec}}
+
+\newcommand{\uu}{u}
+  
+\newcommand{\tphi}{{\tilde{\phi}}}
+\newcommand{\ttheta}{{\tilde{\theta}}}
+\newcommand{\trn}{{\mathrm{trn}}}
+\newcommand{\tst}{{\mathrm{tst}}}
+\newcommand{\val}{{\mathrm{val}}}
+\newcommand{\bydef}{{\triangleq}}
+\newcommand{\tx}{{\tilde{x}}}
+
+\newcommand{\innerproduct}[2]{\langle{#1},{#2}\rangle}
+
+\definecolor{purple}{rgb}{0.8, 0.4, 0.9}
+\definecolor{darkred}{rgb}{0.8, 0, 0}
+\definecolor{darkgreen}{rgb}{0, 0.6, 0}
+\definecolor{blue}{rgb}{0.2, 0.2, 1.0}
+
+\ifdefined\MainBook
+\usepackage[linesnumbered,ruled,vlined,resetcount,algochapter]{algorithm2e}
+\else
+\usepackage[linesnumbered,ruled,vlined]{algorithm2e}
+\fi
+
+\SetKwInput{KwInput}{Input}                % Set the Input
+\SetKwInput{KwReturn}{Return}
+ 
+
+\hypersetup{
+    colorlinks=true,  % Enables colored links
+    citecolor=blue,
+    linkcolor=blue,   % Internal links
+    filecolor=magenta,% File links
+    urlcolor=cyan     % URL links
+  }
+  
+\usepackage{pgfplots}
+
+\usepackage{listings}
+
+\usepackage{booktabs} 
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codemauve}{rgb}{0.58,0,0.82}
+\lstset{ %
+  language=Python,
+  backgroundcolor=\color{yellow!5},   % choose the background color
+  basicstyle=\bfseries\ttfamily\footnotesize,        % size of fonts used for the code 
+  breaklines=true,                 % automatic line breaking only at whitespace
+  captionpos=b,                    % sets the caption-position to bottom
+  commentstyle=\color{codegreen},    % comment style
+  escapeinside={\%*}{*)},          % if you want to add LaTeX within your code
+  keywordstyle=\color{blue},       % keyword style
+  stringstyle=\color{codemauve},     % string literal style
+  columns=flexible, 
+  showstringspaces=false,
+  frame=single,
+}
+
+
+
+\usepackage{tikz}
+\usepackage{pgfmath}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.17}
+\usetikzlibrary{matrix}
+\usetikzlibrary{bayesnet} % For Bayesian networks
+\usetikzlibrary{positioning,shapes, arrows}
+\usetikzlibrary{arrows.meta, positioning,  shapes.geometric,fit,automata}
+\usetikzlibrary{calc}
+\usetikzlibrary{arrows.meta, decorations.pathmorphing, backgrounds}
+\usepgfplotslibrary{groupplots}
+
+\usepackage[normalem]{ulem} % Enable underlining
+
+
+\usepackage{fancybox,graphicx}
+\graphicspath{{./figures/}}
+
+\usepackage{color}
+\usepackage{latexsym,amsmath,amsfonts}
+\usepackage{times}
+
+\usepackage{tcolorbox}
+\usepackage{colortbl} 
+
+\usepackage{booktabs}
+
+\definecolor{purple}{rgb}{0.8, 0.4, 0.9}
+\definecolor{darkred}{rgb}{0.8, 0, 0}
+\definecolor{darkgreen}{rgb}{0, 0.6, 0}
+\definecolor{blue}{rgb}{0.2, 0.2, 0.8}
+\definecolor{darkblue}{rgb}{0, 0, 0.5}
+\definecolor{lightyellow}{rgb}{1.0,1.0,0.9}
+
+\newtheorem{alg_env}{Algorithm}
+
+\newtcolorbox{simpleblock}{
+    colback=lightyellow, % Background color for the block body
+    colframe=darkblue, % Border color for the block
+    arc=1mm, % Rounded corner radius
+    boxrule=0.5mm, % Border thickness
+    left=2mm, 
+    right=2mm,
+    top=1mm,
+    bottom=1mm,
+}
+  
+
+ 
+% Example: \myrefcite{mypaper} or \myslidecite[\normalsize]{mypaper}
+%
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "main"
+%%% End:

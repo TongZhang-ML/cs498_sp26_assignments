@@ -1,0 +1,126 @@
+\documentclass[letterpaper,11pt,addpoints]{exam}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+
+\input{myheaders}
+
+
+\usepackage{graphicx}
+\graphicspath{{figs/}}
+\usepackage{caption}
+\usepackage{subcaption}
+% spacing
+\usepackage[top=1in, bottom=1in, left=0.75in, right=0.75in]{geometry}
+\usepackage{amsmath,amssymb}
+
+% my packages
+\usepackage[inline]{enumitem}
+\usepackage{multicol}
+\usepackage{environ, xcolor}
+\usepackage{exam}
+
+
+\setlength\parindent{0pt}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Solution hiding %%
+\usepackage[utf8]{inputenc}
+\usepackage{lipsum}
+
+\usepackage{ifthen}
+
+\ifdefined\nosol %
+\NewEnviron{soln}{%
+}
+\NewEnviron{rubric}{%
+}
+\NewEnviron{spaceSoln}{%
+}
+\NewEnviron{spaceSolnLine}{%
+}
+\NewEnviron{spaceSolnDouble}{%
+}
+\else
+\NewEnviron{soln}{%
+  {\par\textbf{Solution.}  \color{blue} \BODY }
+}
+
+\NewEnviron{rubric}{%
+  {\par\textbf{Rubric.}  \color{red} \BODY }
+}
+
+\NewEnviron{spaceSoln}{%
+  {\par\textbf{Solution.}  \color{blue} \BODY }
+}
+\NewEnviron{spaceSolnLine}{%
+  {\par\textbf{Solution.}  \color{blue} \BODY }
+}
+\NewEnviron{spaceSolnDouble}{%
+  {\par\textbf{Solution.}  \color{blue} \BODY }
+}
+\fi
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\newcommand{\university}{UNIVERSITY OF ILLINOIS URBANA-CHAMPAIGN}
+% \newcommand{\faculty}{Faculty of Applied Science and Engineering}
+\newcommand{\class}{CS 498}
+\newcommand{\examnum}{Part I Exam}
+% \newcommand{\content}{Discrete Random Variables \& Probability Distributions}
+\newcommand{\examdate}{02/18/2026}
+\newcommand{\timelimit}{75 minutes}
+
+\pagestyle{headandfoot}
+\firstpageheader{}{}{}
+\firstpagefooter{}{Page \thepage\ of \numpages}{}
+\runningheader{\class}{\examnum}{\examdate}
+\runningheadrule
+\runningfooter{}{Page \thepage\ of \numpages}{}
+
+\begin{document}
+
+\title{\Large \textbf{\university\\ % \faculty\\
+\bigskip
+\class\\ 
+\examnum }}
+\date{\examdate}
+\maketitle
+\begin{flushleft}
+\makebox[12cm]{\textbf{Name}:\ \hrulefill}
+\bigskip
+\\
+\makebox[12cm]{\textbf{NetID}:\ \hrulefill}
+\end{flushleft}
+\noindent \rule{\textwidth}{1pt}
+
+
+\noindent This exam contains \numpages\ pages (including this cover page) and \numquestions\ questions, The point total is \numpoints. 
+\\\\
+% The last page contains reference equations you may use. If you need extra space to write out your solutions, used the attached blank page (pg.\ \numpages) and \textbf{annotate clearly in the original solution space} where your continuation is. 
+
+\textbf{All questions in this exam are single- or multiple-choice
+  questions}. Please clearly circle your answer.
+If you change your response, erase your previous markings cleanly. Unless otherwise specified, each question has one correct
+answer. If we cannot find/cannot read your solution, we reserve the right to give that question/subquestion a 0.
+
+
+
+
+\begin{center}
+\textbf{Distribution of Marks}\\
+\medskip
+% \gradetable[v][questions]
+\multirowgradetable{4}[questions]
+\end{center}
+
+\begin{questions}
+\clearpage
+\input{questions/tf}
+
+\clearpage
+\input{questions/mc}
+\end{questions}
+
+\clearpage
+This page is intentionally left blank to accommodate work that wouldn't fit elsewhere and/or scratch work.
+\end{document}

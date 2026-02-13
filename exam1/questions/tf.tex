@@ -1,0 +1,144 @@
+\uplevel{%
+  \noindent\textbf{Part 1: True/False}\\
+  Please clearly circle your answer. Each question is worth 2 points.
+  If you change your answer, please erase your previous marking cleanly.
+}
+
+\question[2]
+Softmax maps logits to a vector of numbers that always sums to $K$ (the number of classes).
+\begin{enumerate}
+\item True
+\item False
+\end{enumerate}
+\begin{soln}
+B
+\end{soln}
+
+
+\question[2]
+For stochastic gradient descent to work well, the training data is often processed in a deterministic cyclic order.
+\begin{enumerate}
+\item True
+\item False
+\end{enumerate}
+\begin{soln}
+B
+\end{soln}
+
+
+\question[2]
+With $L_2$ regularization $R(\theta)=\frac12\|\theta\|_2^2$, the
+regularization part of the gradient descent update with learning rate
+$\eta$ shrinks parameters by a factor $(1-\eta\lambda)$ (ignoring the loss-gradient term).
+\begin{enumerate}
+\item True
+\item False
+\end{enumerate}
+\begin{soln}
+A
+\end{soln}
+
+
+\question[2]
+In a convolutional layer, the same kernel weights are applied at all spatial locations of the input.
+\begin{enumerate}
+\item True
+\item False
+\end{enumerate}
+
+\begin{soln}
+A
+\end{soln}
+
+
+\question[2]
+Batch normalization uses the same statistics during training and inference.
+\begin{enumerate}
+\item True
+\item False
+\end{enumerate}
+
+\begin{soln}
+B
+\end{soln}
+
+\iffalse
+\question[2]
+Maximum likelihood training of a sequence model with discrete outputs
+leads to a loss that is a sum of cross-entropy terms over time steps.
+\begin{enumerate}
+\item True
+\item False
+\end{enumerate}
+
+\begin{soln}
+A
+\end{soln}
+\fi
+
+\question[2]
+A recurrent neural network can, in principle, represent longer context
+than a fixed-window autoregressive model with the same hidden size.
+\begin{enumerate}
+\item True
+\item False
+\end{enumerate}
+
+\begin{soln}
+A
+\end{soln}
+
+\question[2]
+A denoising autoencoder can reduce over-reliance on the identity map by training the model to reconstruct the clean input from a corrupted input \(x_{\text{noisy}}\).
+\begin{enumerate}
+\item True
+\item False
+\end{enumerate}
+\begin{soln}
+A
+\end{soln}
+
+\question[2]
+In an autoencoder, the output \(\tilde{x}\) is trained to match a target label \(y\) rather than the input \(x\).
+\begin{enumerate}
+\item True
+\item False
+\end{enumerate}
+\begin{soln}
+B
+\end{soln}
+
+\iffalse
+\question[2]
+In a VAE, the encoder outputs a single deterministic latent vector $z$ for each input $x$.
+\begin{enumerate}
+\item True
+\item False
+\end{enumerate}
+\begin{soln}
+B
+\end{soln}
+\fi
+
+\question[2]
+If the VAE prior is $p(z)=\mathcal N(0,I)$, then after training we can generate samples by drawing $z\sim\mathcal N(0,I)$ and decoding.
+\begin{enumerate}
+\item True
+\item False
+\end{enumerate}
+\begin{soln}
+A
+\end{soln}
+
+\question[2]
+In SimCLR, a decoder network is required during training in order to reconstruct the input.
+\begin{enumerate}
+\item True
+\item False
+\end{enumerate}
+\begin{soln}
+B
+\end{soln}
+
+
+

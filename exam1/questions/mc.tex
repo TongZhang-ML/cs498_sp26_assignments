@@ -1,0 +1,335 @@
+\uplevel{%
+  \noindent\textbf{Part 2: Multiple Choice}\\
+  Please clearly circle your answer.
+  If you change your answer, please erase your previous marking cleanly.
+  Each choice is graded separately and is worth 1 point.
+}
+
+\question[4]
+Which of the following statements about the Universal Approximation Theorem for two-layer neural networks is \textbf{true}?  
+Assume the activation function \( \phi_0 \) is continuous and
+non-polynomial. \textbf{Select all that apply.}
+
+\begin{enumerate}
+\item Any continuous function defined on a bounded domain can be exactly represented by a two-layer neural network with finitely many hidden units.
+\item A multi-layer neural network defined on a bounded domain can be approximated arbitrarily well by a two-layer neural network with a {finite} number of hidden units. 
+\item There exists an integer $N$ such that a two-layer neural network with $N$ hidden unit can approximate any continuous function arbitrarily well.
+\item The Universal Approximation Theorem only applies if the activation function is ReLU.
+\end{enumerate}
+
+\begin{soln}
+B. 
+\end{soln}
+
+
+\iffalse
+\question[4]
+Which of the following are true for the softmax function applied to logits $z\in\mathbb R^K$? \textbf{Select all that apply.}
+\begin{enumerate}
+\item Adding the same constant to every logit changes the softmax output. 
+\item Each output component is nonnegative.
+\item Softmax always outputs a one-hot vector.
+\item The output components sum to $1$. 
+\end{enumerate}
+\begin{soln}
+B,D.
+\end{soln}
+\fi
+
+\question[4]
+Consider $K$-class classification with logits $z=f(\theta,x)\in\mathbb R^K$ and loss
+\[
+-\ln\left[\mathrm{softmax}(z)\right]_y.
+\]
+Which statements are correct? \textbf{Select all that apply.}
+\begin{enumerate}
+\item Minimizing this loss is equivalent to maximum likelihood estimation under the softmax model.
+\item This loss depends only on the predicted class $\arg\max_c z_c$ and not on the values of the other logits.
+\item This loss is commonly called cross-entropy loss. 
+\item This loss can be used for multi-class logistic regression as well as neural networks.
+\end{enumerate}
+\begin{soln}
+A,C,D.
+\end{soln}
+
+
+\question[4]
+Which of the following is a typical disadvantage of full gradient descent compared with SGD or minibatch SGD on large datasets?
+\textbf{Select all that apply.}
+\begin{enumerate}
+\item It requires a smaller learning rate than SGD to converge.
+\item Each update requires computing gradients over all $n$ examples, which can be expensive when $n$ is large.
+\item It may be impractical when the full dataset cannot be loaded or accessed in memory at once.
+\item It requires more memory to store model parameters.
+\end{enumerate}
+
+\begin{soln}
+B, C.
+\end{soln}
+
+
+\question[4]
+Which of the following statements is correct? \textbf{Select all that apply.}
+\begin{enumerate}
+\item For a fixed minibatch size, doubling the learning rate always improves generalization. 
+\item Increasing the minibatch size typically reduces the variance of the minibatch gradient estimate.
+\item Using a smaller learning rate can reduce oscillation but may slow down progress.
+\item A learning rate schedule that decreases $\eta_t$ over time is often used to reduce the variance of updates later in training. 
+\end{enumerate}
+\begin{soln}
+B, C, D.
+\end{soln}
+
+
+\question[4]
+Which of the following statements is correct about Adam versus AdamW?
+\textbf{Select all that apply.}
+\begin{enumerate}
+  \item Adam simply applies momentum to the gradients, without using any moving average of squared gradients.
+\item In AdamW, weight decay is applied as a separate shrinkage on parameters rather than being mixed into the adaptive gradient term.
+\item In Adam, the bias correction terms $\hat m_t$ and $\hat v_t$ are used because $m_0=v_0=0$ makes early moving averages biased toward zero.
+\item When weight decay is nonzero, AdamW behaves the same as Adam because both apply regularization through the gradient update.
+\end{enumerate}
+\begin{soln}
+ B, C.
+\end{soln}
+
+
+
+\question[4]
+
+Which of the following are typical advantages of convolutional layers over fully connected layers?
+\textbf{Select all that apply.}
+\begin{enumerate}
+\item Fewer parameters due to parameter sharing.
+\item Ability to exploit local spatial structure.
+\item Exact invariance to all geometric transformations.
+\item Reduced memory usage for large images.
+\end{enumerate}
+
+\begin{soln}
+A, B, D
+\end{soln}
+
+
+\question[4]
+An input feature map has size \(C_{\text{in}} \times 28 \times 28\).
+A convolution uses kernel size \(k=3\), stride \(s=1\), and \textbf{no padding} (\(p=0\)),
+with \(C_{\text{out}}=16\). What is the output size?
+
+\begin{enumerate}
+\item \(16 \times 26 \times 26\)
+\item \(16 \times 28 \times 28\)
+\item \(16 \times 25 \times 25\)
+\item \(16 \times 14 \times 14\)
+\end{enumerate}
+
+\begin{soln}
+A.
+\end{soln}
+
+
+\question[4]
+
+Which of the following correctly describe the effect of increasing stride in a convolution layer?
+\textbf{Select all that apply.}
+\begin{enumerate}
+\item The spatial resolution of the output is not affected.
+\item The spatial resolution of the output is reduced.
+\item The number of output channels increases automatically.
+\item Some fine spatial details may be lost.
+\end{enumerate}
+
+\begin{soln}
+ B, D
+\end{soln}
+
+
+\question[4]
+Which of the following statements about sequence models are correct?
+\textbf{Select all that apply.}
+\begin{enumerate}
+\item In next-token prediction, each time step can be viewed as a supervised
+      learning problem with the context as input and the next token as label.
+\item A bigram model is an example of a recurrent neural network.
+\item Tokenization changes the length of the input sequence seen by the model.
+\item Increasing vocabulary size necessarily reduces training loss.
+\end{enumerate}
+
+\begin{soln}
+A, C
+\end{soln}
+
+
+
+\question[4]
+Which of the following statements about tokenization are correct?
+\textbf{Select all that apply.}
+\begin{enumerate}
+\item Tokenization converts raw text into a sequence of integers.
+\item Character-level tokenization always gives better performance than
+      subword tokenization.
+\item Subword tokenization helps handle rare or unseen words.
+\item Changing the tokenizer changes the embedding and output layer sizes.
+\end{enumerate}
+
+\begin{soln}
+A, C, D
+\end{soln}
+
+
+\question[4]
+Which of the following statements about sequence generation are correct?
+\textbf{Select all that apply.}
+\begin{enumerate}
+\item During generation, the model typically feeds its own previous predictions
+      back as input.
+\item Lower sampling temperature makes generated sequences more random.
+\item Errors made early in generation can affect later outputs.
+\item Greedy decoding (temperature 0) always maximizes the joint probability of the sequence.
+\end{enumerate}
+
+\begin{soln}
+A, C
+\end{soln}
+
+
+\question[4]
+Which of the following statements is correct? \textbf{Select all that apply.}
+\begin{enumerate}
+\item In an encoder--decoder model, \(z\) needs to be a single fixed-length vector.
+\item In image classification, a CNN is often used as an encoder to map an image \(x\) to an embedding \(z\).
+\item In image classification, the decoder should be a transposed-convolution network to output class logits.
+\item In image classification, a small fully connected network can serve as a decoder that maps \(z\) to class logits.
+\end{enumerate}
+\begin{soln}
+B, D.
+\end{soln}
+
+\question[4]
+Which of the following statements is correct? \textbf{Select all that apply.}
+\begin{enumerate}
+\item An autoencoder can be trained on unlabeled data by minimizing a reconstruction error \(d(x,\tilde{x})\).
+\item The main goal of an autoencoder is to output the correct class label for each input.
+\item A low-dimensional \(z\) can act as a bottleneck that encourages compression of information about \(x\).
+\item If we increase the capacity of an autoencoder enough, it is guaranteed to discover a unique and interpretable representation \(z\) (independent of training details).
+\end{enumerate}
+\begin{soln}
+A, C.
+\end{soln}
+
+\question[4]
+Which of the following statements is correct? \textbf{Select all that apply.}
+\begin{enumerate}
+\item In a denoising autoencoder, the target output is the noisy input \(x_{\text{noisy}}\) so that the model learns to preserve noise.
+\item Adding noise during training makes reconstruction strictly easier, so training a denoising autoencoder should always be faster than training a standard autoencoder.
+\item A denoising autoencoder is trained to map a corrupted input \(x_{\text{noisy}}\) back to a clean output close to \(x\).
+\item If the noise is Gaussian, then the decoder has to be linear for the method to work.
+\end{enumerate}
+\begin{soln}
+C.
+\end{soln}
+
+\question[4]
+Which of the following statements is correct? \textbf{Select all that apply.}
+\begin{enumerate}
+\item Transposed convolution is guaranteed to be the exact inverse operator of a standard convolution layer.
+\item With stride \(s>1\), standard convolution often reduces spatial resolution because outputs are computed on a sparser grid of positions.
+\item With stride \(s>1\), transposed convolution can increase spatial resolution.
+\item Max pooling  preserves all information in the feature map because it keeps the maximum value in each window.
+\end{enumerate}
+\begin{soln}
+B, C.
+\end{soln}
+
+\question[4]
+Which of the following statements is correct? \textbf{Select all that apply.}
+\begin{enumerate}
+\item In a VAE, the encoder defines a distribution $q(z|x)$ rather than outputting only a point estimate for $z$.
+\item The KL regularization term encourages the decoder outputs to have zero mean and identity covariance in pixel space.
+\item In the VAE reparameterization $z=\mu(x)+\sigma(x)\odot \epsilon$, the noise $\epsilon$ is sampled independently of the input $x$.
+\item A standard auto-encoder always produces better samples than a VAE when sampling $z\sim\mathcal N(0,I)$.
+\end{enumerate}
+\begin{soln}
+A, C.
+\end{soln}
+
+\iffalse
+\question[4]
+Which of the following statements is correct? \textbf{Select all that apply.}
+\begin{enumerate}
+\item In VAE with diagonal-Gaussian encoder, the encoder typically outputs $(\mu,\ln\sigma^2)$.
+\item In the ELBO, the reconstruction loss term comes from $\E_{z\sim q(z|x)}[\log p(x|z)]$.
+\item The term $\KL(q(z|x)\|p(z))$ forces the approximate posterior to concentrate on a low-dimensional manifold far away from the prior.
+\item Setting $\sigma(x)\equiv 0$ in the VAE makes the latent variable stochastic and improves diversity.
+\end{enumerate}
+\begin{soln}
+A, B.
+\end{soln}
+\fi
+
+\question[4]
+Consider the PyTorch-style line \texttt{epsilon = torch.randn\_like(std)} used in reparameterization.
+Which of the following statements is correct? \textbf{Select all that apply.}
+\begin{enumerate}
+\item Sampling \texttt{epsilon} this way makes the KL term unnecessary, since the latent already follows $\mathcal N(0,I)$ by construction.
+\item Replacing \texttt{torch.randn\_like(std)} by \texttt{torch.zeros\_like(std)} keeps training unbiased for the ELBO objective.
+\item The sampled \texttt{epsilon} is treated as an external random input; gradients flow through \texttt{mu} and \texttt{std} in \texttt{mu + std*epsilon}.
+\item \texttt{torch.randn\_like(std)} samples i.i.d.\ standard normal noise with the same shape as \texttt{std}.
+\end{enumerate}
+\begin{soln}
+C, D.
+\end{soln}
+
+\question[4]
+Consider a conditional VAE modeling $p(y|x)$ with encoder $q(z|x,y)$ and decoder $p(y|x,z)$.
+Which of the following statements is correct? \textbf{Select all that apply.}
+\begin{enumerate}
+\item Conditioning $x$ can be fed to both encoder and decoder to model $q(z|x,y)$ and $p(y|x,z)$.
+\item In a conditional VAE, $z$ can capture information about $y$ that is not determined by $x$.
+\item The correct variational distribution for a conditional VAE is $q(z|x)$, since $y$ should not be used during training.
+\item After training, to generate $y$ given $x$, we can sample $z\sim \mathcal N(0,I)$ and decode using $\dec(x,z)$.
+\end{enumerate}
+\begin{soln}
+A, B, D.
+\end{soln}
+
+\question[4]
+Which statements correctly describe the batch construction in SimCLR? \textbf{Select all that apply.}
+\begin{enumerate}
+\item From a minibatch of \(N\) original examples, we create \(2N\) augmented views by sampling two augmentations per original.
+\item The positive pairs are chosen as the two most similar views under the current encoder, since we do not have labels.
+\item Each augmented view has exactly one positive in the batch: the other view made from the same original example.
+\item For a fixed anchor view \(i\), all other \(2N-1\) views (except itself) appear in the denominator of \(\ell(i,j)\).
+\end{enumerate}
+\begin{soln}
+A, C, D.
+\end{soln}
+
+\question[4]
+Which statements about the role of augmentations in SimCLR are correct? \textbf{Select all that apply.}
+\begin{enumerate}
+\item Strong augmentations reduce downstream performance because they make the optimization problem too noisy. 
+\item If two augmented views are treated as a positive pair, the model is trained to make their embeddings close.
+\item Strong augmentations can reduce reliance on low-level pixel cues by forcing invariance to larger appearance changes that keep semantics.
+\item If we never use color distortion or crop, then the model is still forced to be invariant to those transformations.
+\end{enumerate}
+\begin{soln}
+B, C.
+\end{soln}
+
+\iffalse
+\question[4]
+Which statements about the projection head \(g(\cdot)\) in SimCLR are correct? \textbf{Select all that apply.}
+\begin{enumerate}
+\item SimCLR applies the contrastive loss on \(u=g(z)\) so that \(z=f(x)\) can keep information useful for downstream tasks even if it is not needed for invariance.
+\item After training, we typically discard \(g\) and keep \(f\) for downstream tasks such as linear probing.
+\item If we remove \(g\) (so \(u=z\)), the learned representation \(z\) is guaranteed to improve because we removed parameters.
+\item The only purpose of \(g\) is to make training faster; it does not change what invariances are learned.
+\end{enumerate}
+\begin{soln}
+A, B.
+\end{soln}
+
+\fi
+
