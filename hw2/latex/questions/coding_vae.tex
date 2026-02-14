@@ -55,7 +55,7 @@ Do \emph{not} apply sigmoid in the decoder.
 Implement the following loss components according to the doc strings in the starter code.
 
 \begin{enumerate}
-\item \textbf{Bernoulli NLL from logits.}
+\item \textbf{Bernoulli NLL from logits (4 points).}
 Given logits $\ell$ and binary targets $y\in\{0,1\}$, implement the per-sample negative log-likelihood
 (sum over pixels). Here $p_k=\sigma(\ell_k)$:
 \[
@@ -65,7 +65,7 @@ Given logits $\ell$ and binary targets $y\in\{0,1\}$, implement the per-sample n
 \]
 Use \texttt{binary\_cross\_entropy\_with\_logits} for numerical stability.
 
-\item \textbf{KL for diagonal Gaussian vs.\ standard normal.}
+\item \textbf{KL for diagonal Gaussian vs.\ standard normal (4 points).}
 For $q(z)=\cN(\mu,\mathrm{diag}(\sigma^2))$ and $p(z)=\cN(0,I)$, implement the closed form
 (per sample, sum over latent dimensions):
 \[
@@ -75,7 +75,7 @@ For $q(z)=\cN(\mu,\mathrm{diag}(\sigma^2))$ and $p(z)=\cN(0,I)$, implement the c
 \left(\mu_j^2 + \sigma_j^2 - \ln\sigma_j^2 - 1\right) .
 \]
 
-\item \textbf{Write down the negative ELBO for one data point (no points).}
+\item \textbf{Write down the negative ELBO for one data point (2 points).}
 Write down the formula for negative ELBO according to the lecture notes for each data point $(x,y)$.
 
 \begin{solution}
@@ -97,13 +97,13 @@ where
 Run the training script in \texttt{mode=1} to train the conditional VAE and save a checkpoint.
 Then:
 \begin{enumerate}
-\item \textbf{Final loss report.}
+\item \textbf{Final loss report (2 points).}
 After training finishes, the script recomputes the final losses on the training set and test set
 (with the model in evaluation mode) and prints
 \(\text{loss}=\text{NLL}+\text{KL}\)
 along with the two components. Report the printed final train and test losses below.
 
-\item \textbf{Generated images.}
+\item \textbf{Generated images (2 points).}
 Use the provided sampling utility to generate conditional samples and save them to
 \texttt{vae\_imgs.png}.
 
@@ -119,7 +119,7 @@ Use the provided sampling utility to generate conditional samples and save them 
 \includegraphics[width=0.8\textwidth]{figs/vae_imgs.png}  
 \end{solution}
 
-\item \textbf{Hidden evaluation (automatic).}
+\item \textbf{Hidden evaluation (4 points).}
 The autograder will load your saved checkpoint and recompute train/test losses using the same code structure.
 Your score depends on correctness of your implementation and whether the saved checkpoint can be loaded and evaluated without errors.
 \end{enumerate}

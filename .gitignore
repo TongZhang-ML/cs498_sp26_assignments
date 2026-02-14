@@ -10,3 +10,7 @@
 hw.pdf
 *.pt
 *.pth
+*.zip
+**/template/**
+*.fls
+*.fdb_latexmk

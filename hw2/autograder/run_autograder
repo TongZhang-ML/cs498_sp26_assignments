@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+cp /autograder/submission/gru.py /autograder/source/gru.py
+cp /autograder/submission/vae.py /autograder/source/vae.py
+
+cd /autograder/source
+python3 run_tests.py --gradescope
+cd ..
+cp source/results.json results/results.json
+
