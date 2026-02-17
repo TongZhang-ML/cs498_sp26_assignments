@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-
+import os
 from transformers import GPT2TokenizerFast
 
 from gru import (
@@ -191,21 +191,100 @@ def test_train_and_validate_small():
     assert isinstance(model, torch.nn.Module)
     assert np.isfinite(train_loss)
     assert np.isfinite(val_loss)
+# ======================================================
+# 7. test set evaluation (model.pth + test.txt)
+# ======================================================
 
+def test_test_loss_eval():
+    device = torch.device("cpu")
+
+    # -------------------------
+    # files must exist
+    # -------------------------
+    if not os.path.isfile("gru_model.pt"):
+        raise AssertionError("gru_model.pt not found")
+
+    saved_dict = torch.load("gru_model.pt", map_location=device)
+    config = saved_dict['config']
+    state_dict = saved_dict['model_state_dict']
+
+
+    # -------------------------
+    # tokenizer
+    # -------------------------
+    tok = GPT2TokenizerFast.from_pretrained("gpt2")
+
+    # -------------------------
+    # read test text
+    # -------------------------
+    with open("test.txt", "r", encoding="utf-8") as f:
+        text = f.read()
+
+    ids = tokenize_string(text, tok)
+
+    loader = make_loader(
+        ids,
+        seq_len=config['seq_len'],
+        batch_size=8,
+        shuffle=False
+    )
+
+    # -------------------------
+    # load model
+    # assumes checkpoint contains full model
+    # -------------------------
+    
+    model = GRULanguageModel(
+        vocab_size=tok.vocab_size,
+        emb_dim=int(config["emb_dim"]),
+        hidden_dim=int(config["hidden_dim"]),
+        num_layers=int(config["num_layers"]),
+        dropout=float(config["dropout"]),
+        pad_token_id=config["pad_token_id"],
+    )
+    model.load_state_dict(state_dict)
+    model.eval()
+
+    # -------------------------
+    # compute CE loss
+    # -------------------------
+    total_loss = 0.0
+    count = 0
+
+    with torch.no_grad():
+        for x, y in loader:
+            x, y = x.to(device), y.to(device)
+
+            logits, _ = model(x)
+            loss = compute_ce_loss(logits, y)
+
+            total_loss += loss.item()
+            count += 1
+
+    avg_loss = total_loss / max(count, 1)
+    # sanity checks
+    assert np.isfinite(avg_loss)
+    assert avg_loss < 4.0
+
+
+if __name__ == "__main__":
+    test_test_loss_eval()
 
 # ======================================================
 # Gradescope format
 # ======================================================
 
 ALL_TESTS = [
-    ("tokenize", 2, test_tokenize_string_basic),
-    ("dataset_len", 2, test_dataset_len),
-    ("dataset_item", 2, test_dataset_item_shapes),
-    ("dataset_overlap", 2, test_dataset_non_overlap),
-    ("model_forward", 3, test_model_forward_shapes),
-    ("model_grad", 2, test_model_gradients),
-    ("train_epoch", 3, test_train_one_epoch_reduces_loss),
-    ("generate", 2, test_generate_text_runs),
-    ("generate_empty", 2, test_generate_empty_prompt_error),
-    ("train_validate", 5, test_train_and_validate_small),
+    ("tokenizer implementation", 10, test_tokenize_string_basic),
+    ("Dataset Implementation A", 3, test_dataset_len),
+    ("Dataset Implementation B", 3, test_dataset_item_shapes),
+    ("Dataset Implementation C", 4, test_dataset_non_overlap),
+    ("Model Implementation A", 7, test_model_forward_shapes),
+    ("Model Implementation B", 3, test_model_gradients),
+    ("Training Implementation", 10, test_train_one_epoch_reduces_loss),
+    ("Text Geneartion A", 8, test_generate_text_runs),
+    ("Text Generation B", 2, test_generate_empty_prompt_error),
+    ("Model selection Implementation ", 10, test_train_and_validate_small),
+    ("Hidden Test", 10, test_test_loss_eval),
+
 ]

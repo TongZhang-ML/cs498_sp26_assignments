@@ -5,7 +5,16 @@ from vae import (
     Decoder,
     kl_diag_gaussian_standard_normal,
     bernoulli_nll_from_logits,
+    VAE,
+    one_hot,
+    vae_loss,
+    get_mnist_dataloaders
 )
+
+import os
+from torchvision import datasets, transforms
+from torch.utils.data import DataLoader
+
 
 
 # ======================================================
@@ -102,15 +111,95 @@ def test_nll_matches_pytorch_bce():
     assert torch.allclose(ours, ref)
 
 
+# ------------------------------------------------------
+# Checkpoint evaluation (vae.pth on MNIST)
+# ------------------------------------------------------
+
+def helper(model, config, loader, device):
+    total_loss = 0.0
+    total_nll = 0.0
+    total_kl = 0.0
+    total_n = 0
+
+    with torch.no_grad():
+        for imgs, labels in loader:
+            y = imgs.to(device)                         # (B, 1, 28, 28), in {0,1}
+            x = one_hot(labels, config["x_dim"], device)    # (B, C)
+
+            logits, mu, logvar = model(x, y)
+            loss, stats = vae_loss(logits=logits, y=y, mu=mu, logvar=logvar)
+
+            bsz = int(y.size(0))
+            total_loss += stats["loss"] * bsz
+            total_nll += stats["nll"] * bsz
+            total_kl += stats["kl"] * bsz
+            total_n += bsz
+
+
+    loss =  total_loss / total_n
+    nll = total_nll / total_n
+    kl =  total_kl / total_n
+
+    return loss, nll, kl
+
+
+def test_checkpoint_eval():
+    device = torch.device("cpu")
+
+    # -------------------------
+    # file exists
+    # -------------------------
+    if not os.path.isfile("vae_model.pt"):
+        raise AssertionError("vae_model.pt not found")
+    saved_dict = torch.load("vae_model.pt", map_location=device)
+    config = saved_dict['config']
+    state_dict = saved_dict['model_state_dict']
+
+
+    # -------------------------
+    # load model
+    # assumes full model was saved with torch.save(model)
+    # -------------------------
+    model = VAE(
+        z_dim=int(config['z_dim']),
+        x_dim=int(config['x_dim'])
+    )
+
+    model.load_state_dict(state_dict)
+    model.eval()
+
+    # -------------------------
+    # MNIST loader
+    # -------------------------
+    transform = [transforms.ToTensor()]
+    transform.append(transforms.Lambda(lambda x: (x > 0.5).to(torch.float32)))
+    transform = transforms.Compose(transform)
+
+    train_loader, test_loader, num_classes = get_mnist_dataloaders(
+        batch_size=128, binary_pixels=True, classes=config['classes']
+    )
+
+    train_loss, train_nll, train_kl = helper(model, config, train_loader, device)
+    test_loss, test_nll, test_kl = helper(model, config, test_loader, device)
+
+    assert train_loss < 75 and train_kl < 19 and train_nll < 56
+    assert test_loss < 75 and test_kl < 19 and test_nll < 56
+
+
+
+
+
 # ======================================================
 # REQUIRED by autograder (same FCN/CNN style)
 # ======================================================
 
+
 ALL_TESTS = [
-    ("Decoder forward shape", 2, test_decoder_forward_shape),
-    ("Decoder outputs logits (no sigmoid)", 2, test_decoder_no_sigmoid_behavior),
-    ("KL zero case", 2, test_kl_zero_case),
-    ("KL closed-form correctness", 2, test_kl_matches_closed_form),
-    ("Bernoulli NLL shape", 1, test_nll_shape),
-    ("Bernoulli NLL correctness", 1, test_nll_matches_pytorch_bce),
+    ("Decoder Implementation A", 5, test_decoder_forward_shape),
+    ("Decoder Implementation B", 5, test_decoder_no_sigmoid_behavior),
+    ("KL Implementation A", 2, test_kl_zero_case),
+    ("KL Implementation B", 2, test_kl_matches_closed_form),
+    ("Bernoulli NLL Implementation A", 2, test_nll_shape),
+    ("Bernoulli NLL Implementation B", 2, test_nll_matches_pytorch_bce),
+    ("Hidden Test", 4, test_checkpoint_eval),
 ]

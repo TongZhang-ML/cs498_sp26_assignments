@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 cp /autograder/submission/gru.py /autograder/source/gru.py
 cp /autograder/submission/vae.py /autograder/source/vae.py
+cp /autograder/submission/gru_model.pt /autograder/source/gru_model.pt
+cp /autograder/submission/vae_model.pt /autograder/source/vae_model.pt
 
 cd /autograder/source
 python3 run_tests.py --gradescope
