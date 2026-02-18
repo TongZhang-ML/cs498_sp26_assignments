@@ -27,9 +27,14 @@ B
 
 
 \question[2]
-With $L_2$ regularization $R(\theta)=\frac12\|\theta\|_2^2$, the
+Consider the minimization of regularized training loss
+$\min_\theta \left[\frac1n \sum_{i=1}^n \ell_i(\theta) +\lambda R(\theta)\right]$,
+with $L_2$ regularization $R(\theta)=\frac12\|\theta\|_2^2$. The
 regularization part of the gradient descent update with learning rate
-$\eta$ shrinks parameters by a factor $(1-\eta\lambda)$ (ignoring the loss-gradient term).
+$\eta$ shrinks parameters by a factor $(1-\eta\lambda)$ (ignoring the data-gradient term).
+%With $L_2$ regularization $R(\theta)=\frac12\|\theta\|_2^2$, the
+%regularization part of the gradient descent update with learning rate
+%$\eta$ shrinks parameters by a factor $(1-\eta\lambda)$ (ignoring the loss-gradient term).
 \begin{enumerate}
 \item True
 \item False
