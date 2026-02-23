@@ -1,0 +1,111 @@
+\begin{Q}
+\textbf{GPT-2 Sentiment Classification Fine-tuning. 70 Points}
+
+In this problem, you will fine-tune a GPT-2 model for binary sentiment classification (negative vs.\ positive).
+You will train on \texttt{data/train.txt}, select hyperparameters using \texttt{data/val.txt}, and save a model checkpoint.
+The hidden \texttt{data/test.txt} will \emph{not} be given to students; it will be used by the autograder to evaluate your saved model.
+
+You are provided with a starter Python file.
+Your task is to fill in \emph{only} the functions whose docstring begins with \textbf{Implement:}.
+For clarity, the required functions in this assignment are:
+\begin{align*}
+&\texttt{tokenize\_text},\ 
+\texttt{SentimentDataset.\_\_getitem\_\_},\\ 
+&\texttt{build\_data\_collator},\ 
+\texttt{build\_model},\\ 
+&\texttt{build\_trainer},\ 
+\texttt{predict\_sentiment}.
+\end{align*}
+
+\medskip
+\noindent\textbf{Tokenizer and model.}
+Use the GPT-2 tokenizer and model from Hugging Face:
+\begin{itemize}
+\item \texttt{GPT2TokenizerFast.from\_pretrained("gpt2")}
+\item \texttt{GPT2ForSequenceClassification.from\_pretrained("gpt2", num\_labels=2)}
+\end{itemize}
+Because GPT-2 does not have a padding token by default, set the padding token to the end-of-sequence (EOS) token and use an \texttt{attention\_mask} so that padded positions do not affect the result.
+
+\medskip
+\noindent\textbf{Data format.}
+Each line in \texttt{data/train.txt}, \texttt{data/val.txt}, and \texttt{data/test.txt} has the following format:
+\[
+\texttt{y}\ \ \texttt{text}
+\]
+where \texttt{y} is the \emph{first character} of the line (either \texttt{0} or \texttt{1}), followed by whitespace (typically a tab), followed by the review text to classify.
+For example:
+\begin{verbatim}
+0       All the pretty people in this film. ...
+1       My cats seemed to be amused to work for their food. ...
+\end{verbatim}
+Your loader should parse the label from the first character, and treat the rest of the line (after stripping leading whitespace) as the input text.
+
+\medskip
+\noindent\textbf{Training and evaluation protocol.}
+Use Hugging Face \texttt{Trainer} for fine-tuning and evaluation.
+You will run a small sweep over a few prespecified configurations (A/B/C), report validation metrics, select the best configuration using validation loss (tie-break by validation accuracy), retrain on \texttt{train+val}, and produce a model checkpoint using the default saving behavior defined in the starter code.
+
+\medskip
+\noindent\textbf{Autograder.}
+Gradescope will (i) run unit tests on the functions marked \textbf{Implement:} and (ii) run your training script and load your saved checkpoint to evaluate on the hidden \texttt{data/test.txt}.
+Most points come from correct, self-contained implementations that pass the unit tests; the hidden test score is a small portion.
+
+\begin{enumerate}
+
+\item \textbf{\texttt{tokenize\_text}: tokenization with attention mask (10 points).}
+Implement \texttt{tokenize\_text(text, tokenizer, max\_len)}.
+Your function should tokenize one text example, truncate to \texttt{max\_len}, and return a dictionary with exactly the keys
+\texttt{input\_ids} and \texttt{attention\_mask}.
+Do \emph{not} pad inside this function.
+
+\item \textbf{\texttt{SentimentDataset.\_\_getitem\_\_}: dataset output format (10 points).}
+  Implement\\
+  \texttt{SentimentDataset.\_\_getitem\_\_(idx)}.
+For index \texttt{idx}, return a dictionary containing
+\texttt{input\_ids}, \texttt{attention\_mask}, and \texttt{labels} (an integer in \{0,1\}).
+Your implementation should call \texttt{tokenize\_text(...)}.
+
+\item \textbf{\texttt{build\_data\_collator}: dynamic padding (10 points).}
+Implement \texttt{build\_data\_collator(tokenizer)} so that batches are padded dynamically (to the longest sequence in the batch).
+Your collator should return PyTorch tensors and work with \texttt{Trainer}.
+
+\item \textbf{\texttt{build\_model}: GPT-2 classifier construction (10 points).}
+Implement \texttt{build\_model(model\_name, num\_labels, pad\_token\_id)} to construct \texttt{GPT2ForSequenceClassification} with \texttt{num\_labels=2}.
+Make sure \texttt{model.config.pad\_token\_id} matches the tokenizer's padding id.
+
+\item \textbf{\texttt{build\_trainer}: TrainingArguments and Trainer (10 points).}
+Implement \texttt{build\_trainer(cfg, model, tokenizer, train\_ds, val\_ds, seed, ...)}.
+Your function should build \texttt{TrainingArguments} from the sweep configuration (learning rate, batch size, epochs, weight decay)
+and then return a \texttt{Trainer} that:
+(i) trains on \texttt{train\_ds} and evaluates on \texttt{val\_ds},
+(ii) uses your dynamic padding collator, and
+(iii) reports accuracy using the provided \texttt{compute\_metrics} callback in the starter file.
+
+\item \textbf{\texttt{predict\_sentiment}: single-example inference (10 points).}
+Implement \texttt{predict\_sentiment(model, tokenizer, text, ...)} to run inference for a single text string and return the predicted label (0 or 1).
+It should handle device placement, tokenization with attention mask, and return \texttt{argmax} over logits.
+
+\item \textbf{Model selection: sweep and report (5 points).}
+Run the prespecified configurations (A/B/C) and report a small table with validation loss and validation accuracy.
+State which configuration you selected as best (based on validation loss; tie-break by validation accuracy).
+
+\begin{solution}
+  \begin{tabular}{cccc}
+\hline
+Config & Train epochs & Val loss & Val acc \\
+\hline
+A & 1 & 0.6270 & 0.5800 \\
+B & 2 & 0.3159 & 0.8800 \\
+C & 3 & 0.6010 & 0.8800 \\
+\hline
+\multicolumn{4}{c}{Best config:\ B} \\
+\hline
+  \end{tabular}
+  \end{solution}
+
+\item \textbf{Hidden test performance (5 points).}
+Gradescope will evaluate the checkpoint produced by your code on the hidden \texttt{data/test.txt}.
+This part is worth at most 5 points and is included in the overall 50-point total.
+
+\end{enumerate}
+\end{Q}

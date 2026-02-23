@@ -1,0 +1,40 @@
+\documentclass{article}
+
+\newcommand{\hwno}{3}
+\newcommand{\duedate}{March 13, 2026}
+\newcommand{\lastduedate}{March 17, 2026}
+
+\title{CS 498 --- Homework \hwno}
+\author{\emph{your NetID here}}
+\date{Due: \duedate }
+
+\newcommand{\hw}{\texttt{hw{\hwno}}}
+\newcommand{\hwc}{\texttt{hw{\hwno}code}}
+
+\input{myheaders.tex}
+
+\tcbuselibrary{listings,breakable}
+
+\newtcblisting{solutionlisting}{
+  breakable,
+  colback=white,
+  colframe=black,
+  listing only,
+  Listing options={basicstyle=\ttfamily\small, columns=fullflexible, keepspaces=true}
+}
+
+\usepackage{caption}
+
+\begin{document}
+
+
+\maketitle
+
+\input{instructions.tex}
+\begin{enumerate}
+
+  \input{questions/coding_sent}
+
+  \input{questions/coding_textgen}
+\end{enumerate}
+\end{document}
