@@ -26,7 +26,7 @@ The hidden test set should be evaluated on Gradescope.
 The hidden test results are not disclosed to students until the end.
 
 sent_solution.py will save ckpt to outputs/sent_model.pt
-sent_solution.py --test_path data/test.txt will read ckpt from outputs/sent_model.pt and evaluate on data/train.txt data/val.txt data/test.txt
+sent_solution.py --mode test will read ckpt from outputs/sent_model.pt and evaluate on data/train.txt data/val.txt data/test.txt
 
 
 ## textgen

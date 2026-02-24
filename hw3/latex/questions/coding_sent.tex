@@ -9,11 +9,11 @@ You are provided with a starter Python file.
 Your task is to fill in \emph{only} the functions whose docstring begins with \textbf{Implement:}.
 For clarity, the required functions in this assignment are:
 \begin{align*}
-&\texttt{tokenize\_text},\ 
+&\texttt{tokenize\_text},\quad 
 \texttt{SentimentDataset.\_\_getitem\_\_},\\ 
-&\texttt{build\_data\_collator},\ 
+&\texttt{build\_data\_collator},\quad 
 \texttt{build\_model},\\ 
-&\texttt{build\_trainer},\ 
+&\texttt{build\_trainer},\quad 
 \texttt{predict\_sentiment}.
 \end{align*}
 
@@ -38,7 +38,7 @@ For example:
 0       All the pretty people in this film. ...
 1       My cats seemed to be amused to work for their food. ...
 \end{verbatim}
-Your loader should parse the label from the first character, and treat the rest of the line (after stripping leading whitespace) as the input text.
+The data loader parses the label from the first character, and treat the rest of the line (after stripping leading whitespace) as the input text.
 
 \medskip
 \noindent\textbf{Training and evaluation protocol.}
@@ -95,17 +95,27 @@ State which configuration you selected as best (based on validation loss; tie-br
 Config & Train epochs & Val loss & Val acc \\
 \hline
 A & 1 & 0.6270 & 0.5800 \\
-B & 2 & 0.3159 & 0.8800 \\
-C & 3 & 0.6010 & 0.8800 \\
+B & 2 & 0.3160 & 0.8800 \\
+C & 3 & 0.6020 & 0.8800 \\
 \hline
 \multicolumn{4}{c}{Best config:\ B} \\
 \hline
-  \end{tabular}
-  \end{solution}
+\end{tabular}
+
+\end{solution}
 
 \item \textbf{Hidden test performance (5 points).}
 Gradescope will evaluate the checkpoint produced by your code on the hidden \texttt{data/test.txt}.
-This part is worth at most 5 points and is included in the overall 50-point total.
+
+\begin{solution}
+
+  train: loss=0.1788 acc=0.9520
+
+  val:   loss=0.1501 acc=0.9500
+
+  test:  loss=0.4752 acc=0.8700
+
+\end{solution}
 
 \end{enumerate}
 \end{Q}

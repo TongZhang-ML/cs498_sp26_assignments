@@ -18,20 +18,19 @@ Default behavior:
 
 Hidden test behavior:
 - test is hidden, so by default we do NOT load/evaluate test.
-- If --test_path is provided, the script will:
+- If RunConfig.mode == "test", the script will:
   (i) load the saved checkpoint, and
-  (ii) evaluate it on train, val, and test.
+  (ii) evaluate it on train, val, and (optional) test if RunConfig.test_path is not None.
 """
 
 from __future__ import annotations
 
-import argparse
 import json
 import os
 import random
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
-
+import argparse
 import numpy as np
 import torch
 from torch.utils.data import Dataset
@@ -175,7 +174,11 @@ def build_data_collator(tokenizer: GPT2TokenizerFast) -> DataCollatorWithPadding
 # Model & Metrics
 # -------------------------
 
-def build_model(model_name: str = "gpt2", num_labels: int = 2, pad_token_id: Optional[int] = None) -> GPT2ForSequenceClassification:
+def build_model(
+    model_name: str = "gpt2",
+    num_labels: int = 2,
+    pad_token_id: Optional[int] = None,
+) -> GPT2ForSequenceClassification:
     """
     Implement:
         Build GPT2ForSequenceClassification with num_labels=2.
@@ -302,7 +305,12 @@ def build_trainer(
 # Checkpoint save/load
 # -------------------------
 
-def save_checkpoint_pt(path: str, model: GPT2ForSequenceClassification, tokenizer: GPT2TokenizerFast, best_metrics: Dict[str, float]) -> None:
+def save_checkpoint_pt(
+    path: str,
+    model: GPT2ForSequenceClassification,
+    tokenizer: GPT2TokenizerFast,
+    best_metrics: Dict[str, float],
+) -> None:
     os.makedirs(os.path.dirname(path), exist_ok=True)
     torch.save(
         {
@@ -364,7 +372,6 @@ def predict_sentiment(
             int: 0 or 1
     """
     device = next(model.parameters()).device
-
     model.eval()
 
     enc = tokenizer(
@@ -375,14 +382,11 @@ def predict_sentiment(
         return_tensors="pt",
         return_attention_mask=True,
     )
-
     enc = {k: v.to(device) for k, v in enc.items()}
 
-    with torch.no_grad():
-        outputs = model(**enc)
-        pred = torch.argmax(outputs.logits, dim=-1).item()
-
-    return int(pred) 
+    outputs = model(**enc)
+    pred = torch.argmax(outputs.logits, dim=-1).item()
+    return int(pred)
 
 
 # -------------------------
@@ -456,6 +460,7 @@ def run_sweep(
 
     set_seed(seed)
     final_model = build_model("gpt2", 2, tokenizer.pad_token_id)
+    # eval_dataset is unused since evaluation_strategy="epoch" but fine if present
     final_trainer = build_trainer(best_cfg, final_model, tokenizer, trainval_ds, val_ds, seed)
     final_trainer.train()
 
@@ -473,27 +478,27 @@ def evaluate_checkpoint(
     ckpt_path: str,
     train_path: str,
     val_path: str,
-    test_path: str,
+    test_path: Optional[str],
     max_len: int,
     seed: int,
 ) -> Dict[str, float]:
     """
-    Load the saved checkpoint and evaluate on train, val, and test.
+    Load the saved checkpoint and evaluate on train, val, and (optional) test.
+    If test_path is None, evaluate only on train/val.
     """
     set_seed(seed)
     tokenizer = build_tokenizer("gpt2")
 
     model, _ = load_checkpoint_pt(ckpt_path)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
 
     train_texts, train_labels = read_data(train_path)
     val_texts, val_labels = read_data(val_path)
-    test_texts, test_labels = read_data(test_path)
 
     train_ds = SentimentDataset(train_texts, train_labels, tokenizer, max_len)
     val_ds = SentimentDataset(val_texts, val_labels, tokenizer, max_len)
-    test_ds = SentimentDataset(test_texts, test_labels, tokenizer, max_len)
 
-    # Minimal eval TrainingArguments
     eval_args = TrainingArguments(
         output_dir=os.path.join("outputs", "sent_eval"),
         per_device_eval_batch_size=16,
@@ -513,81 +518,97 @@ def evaluate_checkpoint(
 
     train_m = eval_trainer.evaluate(eval_dataset=train_ds)
     val_m = eval_trainer.evaluate(eval_dataset=val_ds)
-    test_m = eval_trainer.evaluate(eval_dataset=test_ds)
 
-    return {
+    out: Dict[str, float] = {
         "train_loss": float(train_m.get("eval_loss", np.nan)),
         "train_acc": float(train_m.get("eval_accuracy", np.nan)),
         "val_loss": float(val_m.get("eval_loss", np.nan)),
         "val_acc": float(val_m.get("eval_accuracy", np.nan)),
-        "test_loss": float(test_m.get("eval_loss", np.nan)),
-        "test_acc": float(test_m.get("eval_accuracy", np.nan)),
     }
 
+    if test_path is not None:
+        test_texts, test_labels = read_data(test_path)
+        test_ds = SentimentDataset(test_texts, test_labels, tokenizer, max_len)
+        test_m = eval_trainer.evaluate(eval_dataset=test_ds)
+        out["test_loss"] = float(test_m.get("eval_loss", np.nan))
+        out["test_acc"] = float(test_m.get("eval_accuracy", np.nan))
+
+    return out
+
 
 # -------------------------
-# Main
+# Main (no argparse except optional mode; you can also remove mode)
 # -------------------------
 
-def parse_args() -> argparse.Namespace:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--train_path", type=str, default="data/train.txt")
-    ap.add_argument("--val_path", type=str, default="data/val.txt")
-    ap.add_argument(
-        "--test_path",
-        type=str,
-        default=None,
-        help="Optional. If provided, load the saved checkpoint and evaluate on train/val/test.",
-    )
-    ap.add_argument("--max_len", type=int, default=256)
-    ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--out_ckpt", type=str, default="outputs/sent_model.pt")
-    ap.add_argument("--print_json", action="store_true", help="Print JSON instead of LaTeX table")
-    return ap.parse_args()
+@dataclass
+class RunConfig:
+    # defaults (edit here, not via CLI)
+    mode: str = "train"  # "train" or "test"
+    train_path: str = "data/train.txt"
+    val_path: str = "data/val.txt"
+    test_path: str = "data/test.txt"
+    max_len: int = 256
+    seed: int = 0
+
+    save_path: str = "outputs/sent_model.pt"  # where training saves
+    load_path: Optional[str] = None  # set automatically in eval mode if None
+
+    print_json: bool = False  # default prints LaTeX table
+
+
+def parse_args() -> RunConfig:
+    p = argparse.ArgumentParser()
+    p.add_argument("--mode", type=str, default="train")
+    args = p.parse_args()
+
+    cfg = RunConfig(mode=args.mode)
+    if cfg.mode != "train" and cfg.load_path is None:
+        # this is only for grading as testset is hidden
+        cfg.load_path = cfg.save_path
+    return cfg
 
 
 def main() -> None:
-    args = parse_args()
+    cfg = parse_args()
 
-    results = run_sweep(
-        train_path=args.train_path,
-        val_path=args.val_path,
-        max_len=args.max_len,
-        seed=args.seed,
-        out_ckpt=args.out_ckpt,
-    )
+    if cfg.mode == "train":
+        results = run_sweep(
+            train_path=cfg.train_path,
+            val_path=cfg.val_path,
+            max_len=cfg.max_len,
+            seed=cfg.seed,
+            out_ckpt=cfg.save_path,
+        )
 
-    if args.print_json:
-        print(json.dumps(results, indent=2))
-    else:
-        # Default: print LaTeX table only (students copy-paste into written solution).
-        print(
-            format_sweep_table_latex(
-                results["all_metrics"],
-                results["sweep"],
-                results["best_metrics"]["config"],
+        if cfg.print_json:
+            print(json.dumps(results, indent=2))
+        else:
+            print(
+                format_sweep_table_latex(
+                    results["all_metrics"],
+                    results["sweep"],
+                    results["best_metrics"]["config"],
+                )
             )
+
+    else:
+        eval_metrics = evaluate_checkpoint(
+            ckpt_path=cfg.load_path if cfg.load_path is not None else cfg.save_path,
+            train_path=cfg.train_path,
+            val_path=cfg.val_path,
+            test_path=cfg.test_path,   # can be None
+            max_len=cfg.max_len,
+            seed=cfg.seed,
         )
 
-    # Only evaluate test if explicitly requested.
-    if args.test_path is not None:
-        eval_metrics = evaluate_checkpoint(
-            ckpt_path=results["checkpoint_path"],
-            train_path=args.train_path,
-            val_path=args.val_path,
-            test_path=args.test_path,
-            max_len=args.max_len,
-            seed=args.seed,
-        )
-        if args.print_json:
-            # append evaluation metrics in JSON mode
+        if cfg.print_json:
             print(json.dumps({"loaded_checkpoint_eval": eval_metrics}, indent=2))
         else:
-            # In LaTeX-table mode, print a short plain-text summary after the table.
             print("\n# Loaded-checkpoint evaluation (train/val/test)")
             print(f"train: loss={eval_metrics['train_loss']:.4f} acc={eval_metrics['train_acc']:.4f}")
             print(f"val:   loss={eval_metrics['val_loss']:.4f} acc={eval_metrics['val_acc']:.4f}")
-            print(f"test:  loss={eval_metrics['test_loss']:.4f} acc={eval_metrics['test_acc']:.4f}")
+            if "test_loss" in eval_metrics:
+                print(f"test:  loss={eval_metrics['test_loss']:.4f} acc={eval_metrics['test_acc']:.4f}")
 
 
 if __name__ == "__main__":
