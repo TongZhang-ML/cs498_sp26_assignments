@@ -1,0 +1,118 @@
+\uplevel{%
+  \noindent\textbf{Part 2: Multiple Choice}\\
+  Please clearly circle your answer.
+  If you change your answer, please erase your previous marking cleanly.
+  Each choice is graded separately and is worth 1 point.
+}
+
+
+\question[4]
+Multi-head attention computes \(H\) attention outputs and then combines them. Which of the following statements is correct? \textbf{Select all that apply.}
+\begin{enumerate}
+\item Different heads can use different learned projection matrices, which can lead to different attention patterns.
+\item Concatenating the head outputs typically increases the feature dimension before a final linear projection maps back to \(\dmodel\).
+\item Using more heads makes causal masking unnecessary in a decoder.
+\item Multi-head attention can be viewed as computing several weighted sums in parallel and then mixing them.
+\end{enumerate}
+\begin{soln}
+A,B,D
+\end{soln}
+
+
+
+\question[4]
+(\textit{PyTorch-level concept}) A common implementation pattern for attention is:
+\[
+\texttt{scores}\leftarrow \frac{QK^\top}{\sqrt{d_k}},\qquad
+\texttt{scores}\leftarrow \texttt{scores}+\texttt{mask},\qquad
+\texttt{attn}\leftarrow \texttt{softmax}(\texttt{scores}).
+\]
+Which of the following statements is correct? \textbf{Select all that apply.}
+\begin{enumerate}
+\item A causal mask is used in the encoder so that the encoder attends only to previous source tokens. 
+\item Adding \texttt{mask} before softmax is a way to enforce that some \((i,j)\) pairs receive near-zero attention weight.
+\item If \texttt{mask} uses large negative values for disallowed pairs, those pairs receive negligible probability after softmax.
+\item The main purpose of the mask is to change the value vectors \(V\) by setting some entries of \(V\) to zero. 
+\end{enumerate}
+\begin{soln}
+B, D
+\end{soln}
+
+
+
+\question[4]
+Consider a decoder-only Transformer trained for next-token prediction on sequences \((y_1,\ldots,y_L)\). Which of the following statements is correct? \textbf{Select all that apply.}
+\begin{enumerate}
+\item During training, we can compute a loss for each position \(t\) using the predicted distribution for \(y_{t+1}\) and the known target token.
+\item During inference, cross-attention to an encoder is required for any Transformer model.
+\item During inference, tokens are generated sequentially because the next token is unknown until it is produced.
+\item During training, causal masking is unnecessary because the targets are known. 
+\end{enumerate}
+\begin{soln}
+A,C
+\end{soln}
+
+\question[4]
+Consider a decoder--encoder model with decoder states \(S_\dec \in \rR^{L_\dec \times \dmodel}\) and encoder states \(H_\enc \in \rR^{L_\enc \times \dmodel}\). Which statements correctly describe cross-attention? \textbf{Select all that apply.}
+\begin{enumerate}
+\item Cross-attention typically needs a causal mask to prevent attending to future decoder positions. 
+\item The attention weight matrix has size \(L_\dec \times L_\enc\) for each head.
+\item For each head \(h\), \(Q^{(h)} = S_\dec W^{Q,h}\) and \(K^{(h)} = H_\enc W^{K,h}\).
+\item In cross-attention, both \(K^{(h)}\) and \(V^{(h)}\) are computed from \(H_\enc\).
+\end{enumerate}
+\begin{soln}
+B,C,D
+
+\end{soln}
+
+
+\question[4]
+Which of the following statements about training versus inference in a decoder-only Transformer is correct? \textbf{Select all that apply.}
+\begin{enumerate}
+\item In training with teacher forcing, all positions can be computed in parallel within a layer because the target tokens are known.
+\item In inference, generation is sequential because token \(y_{t+1}\) is unknown until the model produces it.
+\item Even in training, causal masking is used so that position \(t\) does not use information from target positions \(>t\) when predicting \(y_{t+1}\).
+\item In inference, causal masking is unnecessary because the model already knows future tokens.
+\end{enumerate}
+\begin{soln}
+A,B,C
+
+\end{soln}
+
+
+\question[4]
+Consider the following pseudocode for masked attention logits before \(\text{softmax}\):
+\[
+\text{scores} = QK^\top/\sqrt{d_k},\qquad
+\text{scores}[\,\text{mask}=0\,] = -\infty,\qquad
+A=\text{softmax}(\text{scores}).
+\]
+Which statement is correct?
+\begin{enumerate}
+\item This masking is primarily to make attention computations faster by reducing the asymptotic complexity from \(O(L^2)\) to \(O(L)\).
+\item A padding mask is used to prevent attention to PAD tokens that were added only for batching.
+\item Setting masked logits to a very negative value makes the corresponding \(\text{softmax}\) weights close to zero.
+\item A causal mask is used to prevent a decoder position \(t\) from attending to positions \(>t\) during next-token prediction.
+\end{enumerate}
+\begin{soln}
+C
+\end{soln}
+
+\question[4]
+Which of the following statements about Rotary Positional Embedding (RoPE) are correct? \textbf{Select all that apply.}
+
+\begin{enumerate}
+\item RoPE is applied only to the value vectors. 
+\item In RoPE, attention scores depend on relative positions through $(j-i)$.
+\item RoPE changes the norm (magnitude) of query and key vectors.
+\item RoPE rotates query and key vectors using position-dependent rotations. 
+\end{enumerate}
+
+\begin{soln}
+B, D
+\end{soln}
+
+
+% Local Variables:
+% TeX-master: "../exam.tex"
+% End:
