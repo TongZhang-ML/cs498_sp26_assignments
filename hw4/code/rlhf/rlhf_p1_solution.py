@@ -251,15 +251,13 @@ if __name__ == "__main__":
 
     args = TrainingArguments(
         output_dir=os.path.join(output_root, "part1_reward"),
-        report_to="none",
-        learning_rate=2e-5,
+        learning_rate=5e-5,
         per_device_train_batch_size=16,
         per_device_eval_batch_size=16,
         num_train_epochs=2,
         weight_decay=0.0,
-        max_grad_norm=1.0,
         warmup_steps=0,
-        logging_steps=25,
+        logging_steps=50,
         remove_unused_columns=False,
         bf16=False,
         fp16=False,
