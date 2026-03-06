@@ -137,7 +137,7 @@ if __name__ == "__main__":
     out_path = os.path.join(data_dir, "eval_dataset.json")
 
     seed = load_dataset("HuggingFaceH4/self-instruct-seed")["train"]
-    generated = generate_data(seed, num=128)
+    generated = generate_data(seed, num=256)
     dataset = list2dataset(generated)
     dataset.to_json(out_path)
     print(f"Saved {out_path}")
