@@ -113,6 +113,68 @@ B, D
 \end{soln}
 
 
+\question[4]
+Which statements are correct about BERT-style MLM? \textbf{Select all that apply.}
+\begin{enumerate}
+\item MLM is identical to decoder-only next-token prediction.
+\item Some input tokens are masked and predicted.
+\item Both left and right context can be used.
+\item MLM is a common pretraining objective for encoder-style models.
+\end{enumerate}
+\begin{soln}
+B, C, D
+\end{soln}
+
+\question[4]
+A fine-tuned model starts repeating phrases. Which first action is most reasonable? \textbf{Select all that apply.}
+\begin{enumerate}
+\item Keep learning rate fixed and train much longer.
+\item Ignore validation behavior and continue training.
+\item Lower the learning rate or stop earlier.
+\item Assume repetition always implies underfitting.
+\end{enumerate}
+\begin{soln}
+C
+\end{soln}
+
+\question[4]
+Which statement correctly describes self-instruct style generation? \textbf{Select all that apply.}
+\begin{enumerate}
+\item It requires full manual authoring of every new instruction.
+\item It is a one-shot process with no iteration.
+\item It never uses seed tasks.
+\item It commonly bootstraps from seed tasks and iteratively adds filtered generations.
+\end{enumerate}
+\begin{soln}
+D
+\end{soln}
+
+\question[4]
+Which statements are correct about dataset mixing in instruction tuning? \textbf{Select all that apply.}
+\begin{enumerate}
+\item Mixture composition can change held-out metrics.
+\item Weighting strategies can matter, not just total data size.
+\item Equal weights are always optimal.
+\item Mixing has no effect once model size is fixed.
+\end{enumerate}
+\begin{soln}
+A, B
+\end{soln}
+
+\question[4]
+Which habits are appropriate when auditing instruction-tuned model behavior? \textbf{Select all that apply.}
+\begin{enumerate}
+\item Evaluate across held-out tasks or formulations.
+\item Inspect failure cases linked to data quality issues.
+\item Compare results across different data-mixture designs.
+\item Use only training loss to claim broad generalization.
+\end{enumerate}
+\begin{soln}
+A, B, C
+\end{soln}
+
+
+
 % Local Variables:
 % TeX-master: "../exam.tex"
 % End:
