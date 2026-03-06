@@ -1,0 +1,93 @@
+\begin{Q}
+\textbf{Supervised Fine-Tuning (SFT) Pipeline with LLM-as-Judge. 50 Points}
+
+In this problem, implement a two-part SFT pipeline:
+\begin{itemize}
+\item Part 1: generate instruction-tuning data with a simplified self-instruct loop.
+\item Part 2: train with prompt masking and evaluate with an LLM judge.
+\end{itemize}
+
+You should fill in \emph{only} functions whose docstring begins with \textbf{Implement}.  
+Required functions:
+\[
+\texttt{self\_instruct},\ \texttt{generate\_data},\ \texttt{evaluate\_responses},\ \texttt{tokenize\_with\_prompt\_masking}.
+\]
+
+\medskip
+\noindent\textbf{Important notes.}
+\begin{itemize}
+\item Keep all function signatures unchanged.
+\item Follow the docstring requirements exactly.
+\end{itemize}
+
+\begin{enumerate}
+
+\item \textbf{Part 1: self-instruct data generation (20 points).}
+
+\begin{enumerate}
+\item \textbf{\texttt{self\_instruct(...)} (10 points).}
+Implement one simplified self-instruct iteration:
+\begin{itemize}
+\item sample 8 existing examples,
+\item ask the provided LLM for 8 new examples in JSON,
+\item keep only generated items with rating $\ge 4$,
+\item append accepted items back into the dataset list.
+\end{itemize}
+Your implementation should be robust to JSON parsing failures (do not crash).
+
+\item \textbf{\texttt{generate\_data(...)} (10 points).}
+Generate a dataset of exactly \texttt{num} rows in the format
+\[
+\{\texttt{"prompt"}:\ldots,\ \texttt{"response"}:\ldots\}.
+\]
+Convert each accepted self-instruct example as follows:
+\begin{itemize}
+\item if \texttt{input==""}, use \texttt{prompt = instruction},
+\item otherwise use \texttt{prompt = instruction + "\\textbackslash nInput: ..."},
+\item use \texttt{response = output}.
+\end{itemize}
+Return a Hugging Face \texttt{Dataset} with exactly \texttt{num} examples.
+\end{enumerate}
+
+\item \textbf{Part 2: SFT with prompt masking and judge evaluation (20 points).}
+
+\begin{enumerate}
+\item \textbf{\texttt{tokenize\_with\_prompt\_masking(...)} (10 points).}
+Format each training sample as a conversation
+(\texttt{user(prompt)} $\rightarrow$ \texttt{assistant(response)}), then construct labels so that:
+\begin{itemize}
+\item use the provided local conversation formatter,
+\item non-assistant tokens (prompt/template/role tokens) are masked with \texttt{-100},
+\item assistant response tokens remain unmasked,
+\item returned features include \texttt{input\_ids}, \texttt{attention\_mask}, and \texttt{labels}.
+\end{itemize}
+This enforces instruction tuning loss only on reference responses.
+
+\item \textbf{\texttt{evaluate\_responses(...)} (10 points).}
+Implement pairwise evaluation with order-bias reduction:
+for each example, evaluate both orderings
+\texttt{(field\_1, field\_2)} and \texttt{(field\_2, field\_1)},
+then average as in the docstring to produce a win rate in $[0,1]$ for \texttt{field\_1}.
+\end{enumerate}
+
+\item \textbf{Run experiments and report (10 points).}
+
+Run your pipeline and report:
+\begin{enumerate}
+\item (4 points) Data generation summary: number of accepted examples and final dataset size.
+\item (6 points) Evaluation accuracy (main grading metric): report judged win rate of SFT over base model on the eval set as a percentage (e.g., \texttt{63.5\%}).
+Brief observation of 1-3 sentences on whether SFT improved judged response quality.
+\end{enumerate}
+
+\begin{solution}
+
+[Fill in your reported numbers and short observation here.]
+
+\end{solution}
+
+\end{enumerate}
+\end{Q}
+
+%%% Local Variables:
+%%% TeX-master: "../hw.tex"
+%%% End:

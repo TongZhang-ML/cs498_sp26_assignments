@@ -1,0 +1,94 @@
+\begin{Q}
+\textbf{RLHF: Reward Modeling and DPO. 50 Points}
+
+In this problem, you will implement two RLHF components on pairwise preference data:
+\begin{itemize}
+\item Bradley--Terry reward model training,
+\item DPO optimization with a fixed reference model.
+\end{itemize}
+
+You should fill in \emph{only} functions whose docstring begins with \textbf{Implement}.  
+Required methods:
+\[
+\texttt{BTTrainer.compute\_loss},\ \texttt{BTTrainer.prediction\_step},
+\]
+\[
+\texttt{DPOTrainer.compute\_loss},\ \texttt{DPOTrainer.prediction\_step}.
+\]
+
+\medskip
+\noindent\textbf{Dataset and setup.}
+Use preference data from
+\texttt{HuggingFaceH4/ultrafeedback\_binarized}
+in the format with \texttt{chosen} and \texttt{rejected} responses.
+
+\medskip
+\noindent\textbf{Important notes.}
+\begin{itemize}
+\item Keep all function signatures unchanged.
+\item Follow the docstring requirements exactly.
+\end{itemize}
+
+\begin{enumerate}
+
+\item \textbf{Part 1: Reward model (Bradley--Terry) (25 points).}
+
+\begin{enumerate}
+\item \textbf{\texttt{BTTrainer.compute\_loss(...)} (12 points).}
+Given a batch containing chosen/rejected tokenized responses:
+\begin{itemize}
+\item score chosen and rejected with the reward model,
+\item compute difference $d = r_{\text{chosen}} - r_{\text{rejected}}$,
+\item compute Bradley--Terry loss using BCE-with-logits target 1:
+\[
+\mathcal{L}_{\mathrm{BT}} = \mathrm{BCEWithLogits}(d, 1).
+\]
+\end{itemize}
+Return loss, and when requested also return outputs consistent with \texttt{Trainer} expectations.
+
+\item \textbf{\texttt{BTTrainer.prediction\_step(...)} (8 points).}
+Implement evaluation-time prediction logic:
+\begin{itemize}
+\item run under \texttt{torch.no\_grad()},
+\item return \texttt{(loss, predictions, None)},
+\item when \texttt{prediction\_loss\_only=True}, return only loss.
+\end{itemize}
+
+\item \textbf{Train and report reward-model metrics (5 points).}
+Report train/test loss and accuracy before and after training.
+\end{enumerate}
+
+\item \textbf{Part 2: DPO trainer (25 points).}
+
+\begin{enumerate}
+\item \textbf{\texttt{DPOTrainer.compute\_loss(...)} (12 points).}
+Use the provided \texttt{DPOReward} module to compute implicit rewards for chosen and rejected responses,
+then optimize with pairwise BCE-with-logits on reward differences.
+
+\item \textbf{\texttt{DPOTrainer.prediction\_step(...)} (8 points).}
+Implement evaluation-time prediction behavior consistent with Hugging Face \texttt{Trainer}.
+
+\item \textbf{Train and report DPO metrics (5 points).}
+Report train/test loss and accuracy before and after DPO training.
+\end{enumerate}
+
+\item \textbf{Evaluation accuracy summary (required).}
+Report the following four numbers clearly:
+\begin{itemize}
+\item Reward model: test accuracy before and after training.
+\item DPO model: test accuracy before and after training.
+\end{itemize}
+These reported accuracies will be used in grading.
+
+\begin{solution}
+
+[Fill in your reported metrics and short discussion here.]
+
+\end{solution}
+
+\end{enumerate}
+\end{Q}
+
+%%% Local Variables:
+%%% TeX-master: "../hw.tex"
+%%% End:
