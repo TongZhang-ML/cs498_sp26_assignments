@@ -173,7 +173,96 @@ Which habits are appropriate when auditing instruction-tuned model behavior? \te
 A, B, C
 \end{soln}
 
+\question[4]
+Which statements align with cautionary interpretation of emergence claims? \textbf{Select all that apply.}
+\begin{enumerate}
+\item Evaluation design has no effect on perceived thresholds. 
+\item A discrete metric can make gradual improvement appear abrupt.
+\item Capability-level emergence and smooth loss scaling can coexist.
+\item Capability thresholds on specific tasks can appear even when training loss changes smoothly.
+\end{enumerate}
+\begin{soln}
+B,C,D.
+\end{soln}
 
+
+% multiple choice
+\question[4]
+Which statements are consistent with scaling-law intuition? \textbf{Select all that apply.}
+\begin{enumerate}
+\item Test loss often follows a smooth power-law trend with increased scale in studied regimes.
+\item Increasing parameters, data, and compute in a balanced way is usually more effective than scaling only one factor.
+\item Scaling laws imply that architecture shape is always irrelevant.
+\item Scaling results remove the need for empirical evaluation on downstream tasks.
+\end{enumerate}
+\begin{soln}
+A,B.
+\end{soln}
+
+
+\question[4]
+You need a single concise answer generated from trusted material
+only. Which setups are most appropriate?
+ \textbf{Select all that apply.}
+\begin{enumerate}
+\item Provide the context text and ask the model to summarize the  relevant information without additional constraints.
+\item Ask for long reasoning traces without final-answer constraint.
+\item We only need to ask the model to answer concisely based on the provided material.
+\item Provide delimited trusted context and require a fixed output format.
+\end{enumerate}
+\begin{soln}
+D.
+\end{soln}
+
+
+\question[4]
+Under a fixed compute budget, which strategies are most aligned with compute-optimal scaling observations?
+\textbf{Select all that apply.}
+\begin{enumerate}
+\item Maximize model size while keeping training tokens very small.
+\item Keep model and data near a balanced tradeoff curve rather than overemphasizing one side.
+\item Fully converge the smallest model possible, regardless of data scale.
+\item Use identical token-per-parameter ratios for all model families and settings.
+\end{enumerate}
+\begin{soln}
+B.
+\end{soln}
+
+\question[4]
+Which statements about precision choices are accurate?  \textbf{Select all that apply.}
+\begin{enumerate}
+\item BF16/FP16 are always numerically safer than FP32 for any model and any setup.
+\item FP32 is faster than BF16/FP16 on recent tensor-core GPUs.
+\item In mixed precision training, BF16/FP16 are the preferred training precision for optimizer states.
+\item Precision choices affect both speed and memory footprint.
+\end{enumerate}
+\begin{soln}
+D.
+\end{soln}
+
+\question[4]
+Which statements about ZeRO-Offload are correct? \textbf{Select all that apply.}
+\begin{enumerate}
+\item It can lower peak GPU memory by moving optimizer/master states to CPU.
+\item It incurs little communication overhead.
+\item It may reduce training throughput if CPU-GPU bandwidth is the bottleneck.
+\item It eliminates the need for mixed precision.
+\end{enumerate}
+\begin{soln}
+A,C.
+\end{soln}
+
+\question[4]
+Which statements about LoRA design are correct? \textbf{Select all that apply.}
+\begin{enumerate}
+\item LoRA updates all base-model weight entries during fine-tuning.
+\item Rank $r$ and scaling $\alpha$ are key hyperparameters.
+\item LoRA typically uses less optimizer-state memory than full-parameter fine-tuning.
+\item Applying LoRA to attention projections is a common practical choice.
+\end{enumerate}
+\begin{soln}
+B,C,D.
+\end{soln}
 
 % Local Variables:
 % TeX-master: "../exam.tex"
