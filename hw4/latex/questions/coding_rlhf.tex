@@ -1,10 +1,11 @@
 \begin{Q}
 \textbf{RLHF: Reward Modeling and DPO. 50 Points}
 
-In this problem, you will implement two RLHF components on pairwise preference data:
+In this problem, you will implement two RLHF reward models on pairwise preference data:
 \begin{itemize}
-\item Bradley--Terry reward model training,
-\item DPO optimization with a fixed reference model.
+\item Bradley--Terry reward model by fineuting a pretrained LLM with
+  classification head. 
+\item DPO implied reward model with fine tuned LLM over a fixed reference LLM.
 \end{itemize}
 
 You should fill in \emph{only} functions whose docstring begins with \textbf{Implement}.  
@@ -18,10 +19,8 @@ Required methods:
 
 \medskip
 \noindent\textbf{Dataset and setup.}
-Use preference data from
-\texttt{HuggingFaceH4/ultrafeedback\_binarized}
-in the format with \texttt{chosen} and \texttt{rejected} responses.
-
+Use training data from \texttt{data/train\_prefs.txt} and test data \texttt{data/test\_prefs.txt}.
+ 
 \medskip
 \noindent\textbf{Important notes.}
 \begin{itemize}
@@ -34,7 +33,7 @@ in the format with \texttt{chosen} and \texttt{rejected} responses.
 \item \textbf{Part 1: Reward model (Bradley--Terry) (25 points).}
 
 \begin{enumerate}
-\item \textbf{\texttt{BTTrainer.compute\_loss(...)} (12 points).}
+\item \textbf{\texttt{BTTrainer.compute\_loss(...)} (10 points).}
 Given a batch containing chosen/rejected tokenized responses:
 \begin{itemize}
 \item score chosen and rejected with the reward model,
@@ -46,43 +45,60 @@ Given a batch containing chosen/rejected tokenized responses:
 \end{itemize}
 Return loss, and when requested also return outputs consistent with \texttt{Trainer} expectations.
 
-\item \textbf{\texttt{BTTrainer.prediction\_step(...)} (8 points).}
+\item \textbf{\texttt{BTTrainer.prediction\_step(...)} (10 points).}
 Implement evaluation-time prediction logic:
-\begin{itemize}
+zq\begin{itemize}
 \item run under \texttt{torch.no\_grad()},
 \item return \texttt{(loss, predictions, None)},
 \item when \texttt{prediction\_loss\_only=True}, return only loss.
 \end{itemize}
 
-\item \textbf{Train and report reward-model metrics (5 points).}
-Report train/test loss and accuracy before and after training.
+\item \textbf{Train and report reward-model evaluatoin metrics (5
+    points).}
+Submit program outputs.   
+Report train/test loss and accuracy before and after training below. 
+
+\begin{solution}
+
+  train\_before: loss=1.086595, acc=0.479800
+
+  test\_before: loss=1.098495, acc=0.487750
+
+  train\_after: loss=0.355826, acc=0.823000
+
+  test\_after: loss=0.732526, acc=0.619500
+  
+  Students should report test\_after accuracy at least 0.58 to get full score.
+\end{solution}
+
 \end{enumerate}
 
 \item \textbf{Part 2: DPO trainer (25 points).}
 
 \begin{enumerate}
-\item \textbf{\texttt{DPOTrainer.compute\_loss(...)} (12 points).}
+\item \textbf{\texttt{DPOTrainer.compute\_loss(...)} (10 points).}
 Use the provided \texttt{DPOReward} module to compute implicit rewards for chosen and rejected responses,
 then optimize with pairwise BCE-with-logits on reward differences.
 
-\item \textbf{\texttt{DPOTrainer.prediction\_step(...)} (8 points).}
+\item \textbf{\texttt{DPOTrainer.prediction\_step(...)} (10 points).}
 Implement evaluation-time prediction behavior consistent with Hugging Face \texttt{Trainer}.
 
 \item \textbf{Train and report DPO metrics (5 points).}
-Report train/test loss and accuracy before and after DPO training.
-\end{enumerate}
-
-\item \textbf{Evaluation accuracy summary (required).}
-Report the following four numbers clearly:
-\begin{itemize}
-\item Reward model: test accuracy before and after training.
-\item DPO model: test accuracy before and after training.
-\end{itemize}
-These reported accuracies will be used in grading.
+Submit program outputs.   
+Report train/test loss and accuracy before and after training below. 
+ \end{enumerate}
 
 \begin{solution}
 
-[Fill in your reported metrics and short discussion here.]
+  train\_before: loss=0.693147, acc=0.500000
+
+  test\_before: loss=0.693147, acc=0.500000
+
+  train\_after: loss=0.594382, acc=0.687800
+
+  test\_after: loss=0.662867, acc=0.592000
+
+  Students should report test\_after accuracy at least 0.58 to get full score.
 
 \end{solution}
 

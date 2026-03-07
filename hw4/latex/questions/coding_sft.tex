@@ -3,8 +3,11 @@
 
 In this problem, implement a two-part SFT pipeline:
 \begin{itemize}
-\item Part 1: generate instruction-tuning data with a simplified self-instruct loop.
-\item Part 2: train with prompt masking and evaluate with an LLM judge.
+\item Part 1: generate instruction-tuning data with a simplified
+  self-instruct loop. Save to \texttt{data/sft\_dataset.json}.
+\item Part 2: train gpt2 on \texttt{data/sft\_dataset.json} with
+  prompt masking and evaluate with an LLM judge on
+  \texttt{data/eval\_dataset.json} (which is provided).
 \end{itemize}
 
 You should fill in \emph{only} functions whose docstring begins with \textbf{Implement}.  
@@ -74,14 +77,23 @@ then average as in the docstring to produce a win rate in $[0,1]$ for \texttt{fi
 
 Run your pipeline and report:
 \begin{enumerate}
-\item (4 points) Data generation summary: number of accepted examples and final dataset size.
-\item (6 points) Evaluation accuracy (main grading metric): report judged win rate of SFT over base model on the eval set as a percentage (e.g., \texttt{63.5\%}).
-Brief observation of 1-3 sentences on whether SFT improved judged response quality.
+\item Submit program outputs for both Part I and Part II, and the sft
+  data 
+  \texttt{data/sft\_dataset.json} you generated.
+\item Part II evaluation accurac: report LLM judged win rate of SFT
+  over base model on the eval set as a percentage (e.g.,
+  \texttt{63.5\%}).
 \end{enumerate}
 
 \begin{solution}
 
-[Fill in your reported numbers and short observation here.]
+Program outputs under \texttt{code/reference\_output\_sft.txt}.
+
+Sft data in \texttt{code/sft/data/sft\_dataset.json}.
+
+Win rate (SFT over base): 0.8239.
+
+Students should achieve at least 0.75 to get full score. 
 
 \end{solution}
 
