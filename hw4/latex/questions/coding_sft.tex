@@ -21,6 +21,10 @@ Required functions:
 \begin{itemize}
 \item Keep all function signatures unchanged.
 \item Follow the docstring requirements exactly.
+\item The code will use \texttt{gpt-5-nano} for data generation and
+  LLM as judge. So you should put your openAI API key into
+  \verb|~/.env| for
+  the program to load. The overall API cost should be well below \$1 for the problem. 
 \end{itemize}
 
 \begin{enumerate}
