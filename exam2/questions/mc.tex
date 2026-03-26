@@ -10,12 +10,12 @@
 Multi-head attention computes \(H\) attention outputs and then combines them. Which of the following statements is correct? \textbf{Select all that apply.}
 \begin{enumerate}
 \item Different heads can use different learned projection matrices, which can lead to different attention patterns.
-\item Concatenating the head outputs typically increases the feature dimension before a final linear projection maps back to \(\dmodel\).
+\item In a typical multi-head attention design, each head produces an output of dimension \(d_{\text{model}}\); concatenating all heads therefore increases the representation dimension beyond \(d_{\text{model}}\) before projection.
 \item Using more heads removes the need for causal masking in a decoder.
 \item Multi-head attention can be  computed in parallel.
 \end{enumerate}
 \begin{soln}
-A,B,D
+A,D
 \end{soln}
 
 
@@ -53,7 +53,7 @@ A,C
 \end{soln}
 
 \question[4]
-Consider a decoder--encoder model with decoder states \(S_\dec \in \rR^{L_\dec \times \dmodel}\) and encoder states \(H_\enc \in \rR^{L_\enc \times \dmodel}\). Which statements correctly describe cross-attention? \textbf{Select all that apply.}
+Consider an encoder--decoder Transformer model with decoder states \(S_\dec \in \rR^{L_\dec \times \dmodel}\) and encoder states \(H_\enc \in \rR^{L_\enc \times \dmodel}\). Which statements correctly describe cross-attention? \textbf{Select all that apply.}
 \begin{enumerate}
 \item Cross-attention typically needs a causal mask to prevent attending to future decoder positions. 
 \item The attention weight matrix has size \(L_\dec \times L_\enc\) for each head.
@@ -89,7 +89,7 @@ A=\text{softmax}(\text{scores}).
 Which statement is correct?
 \begin{enumerate}
 \item This masking is primarily to make attention computations faster by reducing the asymptotic complexity from \(O(L^2)\) to \(O(L)\).
-\item A padding mask is used to increase the influence of PAD tokens so that batch statistics are more stable.
+\item A padding mask regularizes the contribution of PAD tokens to improve training stability.
 \item Setting masked logits to a very negative value makes the corresponding \(\text{softmax}\) weights close to zero.
 \item A causal mask allows a decoder position \(t\) to attend to positions \(>t\) during training.
 \end{enumerate}
@@ -103,7 +103,7 @@ Which of the following statements about Rotary Positional Embedding (RoPE) are c
 \begin{enumerate}
 \item RoPE is applied only to the value vectors. 
 \item In RoPE, attention scores depend on relative positions through $(j-i)$.
-\item RoPE changes the norm (magnitude) of query and key vectors.
+\item RoPE may change the norm (magnitude) of query and key vectors.
 \item RoPE rotates query and key vectors using position-dependent rotations. 
 \end{enumerate}
 
@@ -128,7 +128,7 @@ B, C, D
 If you observe that a fine-tuned model starts repeating phrases, which  statements are correct? \textbf{Select all that apply.}
 \begin{enumerate}
 \item Keep learning rate fixed and train much longer.
-\item Ignore validation behavior and continue training.
+\item Increase the decoding temperature during training to reduce repetition.
 \item Lower the learning rate or stop earlier.
 \item This observation implies underfitting.
 \end{enumerate}
@@ -173,7 +173,7 @@ A, B
 % \end{soln}
 
 \question[4]
-Which statements align with cautionary interpretation of emergence claims? \textbf{Select all that apply.}
+Which statements align with a cautious interpretation of LLM emergence claims? \textbf{Select all that apply.}
 \begin{enumerate}
 \item Evaluation design has no effect on perceived thresholds. 
 \item A discrete evaluation metric can make gradual improvement appear abrupt.
@@ -264,24 +264,24 @@ A,B,D.
 \end{soln}
 
 \question[4]
-Which statement is most accurate about preference data in RLHF? \textbf{Select all that apply.}
+  Which statements are correct about training data in RLHF? \textbf{Select all that apply.}
 \begin{enumerate}
 \item It directly provides gradients for PPO without a reward model.
-\item It provides pairwise comparisons that indicate which response is preferred.
-\item It is often used  in pretraining.
-\item It is the same type of supervision as SFT.
+\item It often contains pairwise comparisons indicating which response is preferred.
+\item It is often used in pretraining.
+\item It provides the same type of supervision as SFT.
 \end{enumerate}
 \begin{soln}
 B.
 \end{soln}
 
 \question[4]
-Which claims are consistent with InstructGPT findings? \textbf{Select all that apply.}
+  Which claims are consistent with InstructGPT findings? \textbf{Select all that apply.}
 \begin{enumerate}
 \item Alignment-tuned smaller models can be preferred to much larger untuned baselines.
-\item RLHF with pairwise preference can replace SFT.
-\item One can mix policy optimization data with pretraining text to better retain broad capabilities.
-\item Larger model parameter count alone leads to better human preference ranking.
+\item RLHF with pairwise preferences can replace supervised fine-tuning (SFT) without loss in performance.
+\item Using a supervised fine-tuning stage before RLHF is a common practice.
+\item Scaling model size alone is sufficient to match human preference alignment achieved by RLHF.
 \end{enumerate}
 \begin{soln}
 A,C.
@@ -328,7 +328,7 @@ Which statements are correct about the DPO objective? \textbf{Select all that ap
 \begin{enumerate}
 \item DPO can be written using log-ratios between $\pi_\theta$ and a reference policy $\pi_{\mathrm{ref}}$. 
 \item DPO trains a separate reward model. 
-\item DPO requires sampling trajectories from an environment with delayed rewards as in standard online RL.
+\item DPO requires sampling trajectories, as in standard RL setups.
 \item DPO training data are pairwise preferences (chosen vs rejected responses) for a prompt. 
 \end{enumerate}
 \begin{soln}
@@ -339,7 +339,7 @@ A,D.
 Which statements are correct about GRPO objective design?
 \textbf{Select all that apply.}
 \begin{enumerate}
-\item GRPO always requires a separately trained value model.
+\item GRPO requires a separately trained value model.
 \item GRPO shares normalization statistics across different prompts within the same batch.
 \item Advantage construction can come from relative rewards among sampled outputs.
 \item KL regularization can be included explicitly in objective design.
@@ -349,12 +349,12 @@ C,D.
 \end{soln}
 
 \question[4]
-Which statements are correct about verifier-based rewards in RLVR?
+  Which statements are correct about verifier-based rewards in RLVR?
 \textbf{Select all that apply.}
 \begin{enumerate}
-\item They are feasible for any open-ended subjective task without additional design.
-\item They still require careful checker/reward design to avoid loopholes.
-\item They can be combined with a small format/structure reward when needed.
+\item They are applicable to any open-ended subjective task without additional design.
+\item They require a well-designed verifier to produce meaningful reward signals.
+\item They can be combined with auxiliary format or structure rewards when needed.
 \item They are generally suitable for problems with clear correctness criteria.
 \end{enumerate}
 \begin{soln}
