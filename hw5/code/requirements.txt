@@ -1,0 +1,6 @@
+torch==2.5.1
+transformers==4.50.0
+peft==0.13.2
+accelerate==1.1.1
+Pillow==10.4.0
+safetensors==0.4.5

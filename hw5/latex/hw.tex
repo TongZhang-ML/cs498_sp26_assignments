@@ -1,0 +1,46 @@
+\documentclass{article}
+
+\newcommand{\hwno}{5}
+\newcommand{\duedate}{April 21, 2026}
+\newcommand{\lastduedate}{April 25, 2026}
+
+\title{CS 498 --- Homework \hwno}
+\author{\emph{your NetID here}}
+\date{Due: \duedate }
+
+\newcommand{\hw}{\texttt{hw{\hwno}}}
+\newcommand{\hwc}{\texttt{hw{\hwno}code}}
+
+\input{myheaders.tex}
+
+\tcbuselibrary{listings,breakable}
+
+\newtcblisting{solutionlisting}{
+  breakable,
+  colback=white,
+  colframe=black,
+  listing only,
+  Listing options={basicstyle=\ttfamily\small, columns=fullflexible, keepspaces=true}
+}
+
+\usepackage{caption}
+
+\begin{document}
+
+
+\maketitle
+
+\input{instructions.tex}
+\begin{enumerate}
+
+  \input{questions/coding_clip}
+
+  \input{questions/coding_vlm}
+  
+\end{enumerate}
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
