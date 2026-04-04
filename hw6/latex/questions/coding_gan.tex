@@ -1,0 +1,115 @@
+\begin{Q}
+\textbf{Controllable Generation with a Pretrained StyleGAN. 50 Points}
+
+In this problem, you will start from a \emph{pretrained} StyleGAN generator and fine-tune a small set of parameters for controllable generation.
+The target task is conditional image synthesis for a small attribute vocabulary, such as color, object type, or a binary visual attribute.
+The goal is not to train a GAN from scratch; instead, you will adapt a strong pretrained generator so that a requested attribute is expressed more reliably while preserving image quality and diversity.
+
+The visible files are
+\[
+\texttt{data/train.jsonl},\quad
+\texttt{data/val.jsonl}.
+\]
+The hidden autograder file is \texttt{data/test.jsonl}.
+Visible auxiliary files may include frozen latent codes, attribute labels, or pretrained attribute classifiers prepared by the course staff.
+
+You are provided with a starter Python file.
+Your task is to fill in \emph{only} the functions whose docstring begins with \textbf{Implement:}.
+For clarity, the required functions in this assignment are:
+\begin{align*}
+&\texttt{build\_generator\_and\_controllers},\quad
+\texttt{sample\_training\_batch},\\
+&\texttt{attribute\_control\_loss},\quad
+\texttt{train\_controller},\\
+&\texttt{generate\_controlled\_images}.
+\end{align*}
+
+\medskip
+\noindent\textbf{Setup.}
+The intended pipeline is:
+\begin{itemize}
+\item load a pretrained StyleGAN generator,
+\item freeze most of the generator weights,
+\item expose a small controllable module, such as latent offsets, style-space offsets, or a lightweight conditioning head,
+\item optimize that module using an attribute objective plus regularization.
+\end{itemize}
+The starter code will specify exactly which parameters are trainable.
+Students should not replace the pretrained backbone with a different architecture.
+
+\medskip
+\noindent\textbf{Training signal.}
+Each training example specifies a target attribute and one or more latent seeds.
+The visible utilities may also expose a frozen attribute classifier or scorer.
+Your control loss should encourage the requested attribute while regularizing the update so the generated images remain close to the pretrained generator distribution.
+Typical components include:
+\begin{itemize}
+\item attribute classification or scoring loss,
+\item latent or parameter regularization,
+\item optional identity, perceptual, or path-length style penalties supplied by the starter code.
+\end{itemize}
+
+\medskip
+\noindent\textbf{Model selection and evaluation.}
+The script will run a small sweep over configurations A/B/C, select the best configuration by validation score, retrain on \texttt{train+val}, and save \texttt{outputs/gan\_model.pt}.
+Validation and hidden-test evaluation may combine:
+\begin{itemize}
+\item attribute accuracy from a frozen evaluator,
+\item a simple realism or prior-preservation score,
+\item penalties for mode collapse or excessive drift from the base generator.
+\end{itemize}
+Most credit comes from correct implementations and a self-contained saved checkpoint; hidden performance is a smaller component.
+
+\begin{enumerate}
+
+\item \textbf{\texttt{build\_generator\_and\_controllers}: load pretrained StyleGAN and expose trainable controls (10 points).}
+Implement \texttt{build\_generator\_and\_controllers(...)}.
+It should load the pretrained generator, freeze the intended backbone parameters, construct the trainable control module, and place everything on the requested device.
+
+\item \textbf{\texttt{sample\_training\_batch}: batch construction for controllable generation (10 points).}
+Implement \texttt{sample\_training\_batch(...)}.
+It should assemble latent codes, target attributes, and any auxiliary metadata needed by the training step.
+
+\item \textbf{\texttt{attribute\_control\_loss}: objective for controllable generation (10 points).}
+Implement \texttt{attribute\_control\_loss(...)}.
+It should compute the requested attribute loss together with the regularization terms defined in the starter code and return both the total loss and logging metrics.
+
+\item \textbf{\texttt{train\_controller}: fine-tuning loop and checkpoint selection (10 points).}
+Implement \texttt{train\_controller(...)}.
+Train the controllable module, evaluate on the validation split after each epoch, keep the best checkpoint according to the provided selection metric, and restore that best checkpoint before returning.
+
+\item \textbf{\texttt{generate\_controlled\_images} (5 points).}
+Implement \texttt{generate\_controlled\_images(...)} so that one requested attribute and one latent seed produce one deterministic generated image and its associated score record.
+
+\item \textbf{Validation report (5 points).}
+Run the provided script and report:
+\begin{itemize}
+\item the validation metrics for configurations A/B/C,
+\item which configuration was selected as best,
+\item one brief observation about the tradeoff between controllability and image preservation.
+\end{itemize}
+
+\begin{solution}
+\begin{tabular}{lccc}
+\hline
+Config & Attr acc & Preserve score & Total val score \\
+\hline
+A & 0.9100 & 0.8420 & 0.8760 \\
+B & 0.9440 & 0.8010 & 0.8725 \\
+C & 0.9280 & 0.8610 & 0.8945 \\
+\hline
+\multicolumn{4}{c}{Best config:\ C} \\
+\hline
+\end{tabular}
+
+Configuration C gave the best balance: slightly lower control accuracy than B, but substantially better preservation of the pretrained generator output.
+\end{solution}
+
+\item \textbf{Hidden test performance (5 points).}
+Gradescope will load \texttt{outputs/gan\_model.pt}, generate images from hidden seeds and target attributes, and evaluate the frozen hidden metrics.
+
+\begin{solution}
+test: attr\_acc=0.9310 preserve=0.8540 total=0.8925
+\end{solution}
+
+\end{enumerate}
+\end{Q}
