@@ -338,6 +338,7 @@ def train_sft(
 
     trace: List[Dict[str, Any]] = []
     last_metrics: Dict[str, float] | None = None
+    epoch_train_losses: List[float] = []
 
     for epoch in range(cfg.epochs):
         print(f"train-epoch-start: epoch={epoch + 1}/{cfg.epochs}")
@@ -372,8 +373,11 @@ def train_sft(
                 for row in batch_rows
             )
 
+        avg_epoch_loss = epoch_loss / max(len(train_batches), 1)
+        epoch_train_losses.append(avg_epoch_loss)
         last_metrics = {
-            "train_loss": epoch_loss / max(len(train_batches), 1),
+            "train_loss": avg_epoch_loss,
+            "epoch_train_losses": list(epoch_train_losses),
         }
         print(
             "train-epoch-end:"
@@ -443,17 +447,25 @@ def save_comparison_sheet(path: str, base_rows: Sequence[Dict[str, Any]], finetu
 
 
 def format_latex_table(metrics: Dict[str, float]) -> str:
-    return "\n".join(
+    epoch_train_losses = metrics.get("epoch_train_losses", [])
+    if not isinstance(epoch_train_losses, list) or len(epoch_train_losses) == 0:
+        epoch_train_losses = [float(metrics["train_loss"])]
+
+    rows = [
+        "\\begin{tabular}{lr}",
+        "\\hline",
+        "Epoch & Train loss \\\\",
+        "\\hline",
+    ]
+    for epoch_idx, loss in enumerate(epoch_train_losses, start=1):
+        rows.append(f"{epoch_idx} & {float(loss):.4f} \\\\")
+    rows.extend(
         [
-            "\\begin{tabular}{lr}",
-            "\\hline",
-            "Metric & Value \\\\",
-            "\\hline",
-            f"Train loss & {metrics['train_loss']:.4f} \\\\",
             "\\hline",
             "\\end{tabular}",
         ]
     )
+    return "\n".join(rows)
 
 
 @torch.no_grad()

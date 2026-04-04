@@ -119,6 +119,8 @@ Run the script in \texttt{--mode train} and report:
 \end{itemize}
 
 \begin{solution}
+\begin{itemize}
+\item Final training losses:
 \begin{tabular}{lcc}
 \hline
 Epoch & D loss & G loss \\
@@ -128,11 +130,11 @@ Epoch & D loss & G loss \\
 \hline
 \end{tabular}
 
-The decoded samples showed one generated MNIST-like image for each class. The digits are visibly less sharp than real MNIST examples, but most classes have recognizable coarse structure.
-
+\item One decoded generated MNIST sample for each class from \texttt{outputs/gan\_samples.png}:
 \begin{center}
 \includegraphics[width=0.72\linewidth]{figures/gan_samples.png}
 \end{center}
+\end{itemize}
 \end{solution}
 
 \item \textbf{Hidden test performance (5 points).}
@@ -144,9 +146,10 @@ Gradescope will use \texttt{outputs/gan\_generated\_latents.pt} together with hi
 Gradescope will use the Fr\'echet distance on the hidden test data as the grading metric for generation quality.
 
 \begin{solution}
-train-vs-test: avg\_frechet=0.0623
-
-generated-vs-test: avg\_frechet=1.5140
+\begin{itemize}
+\item train-vs-test: avg\_frechet=0.0623
+\item generated-vs-test: avg\_frechet=1.5140
+\end{itemize}
 \end{solution}
 
 \end{enumerate}

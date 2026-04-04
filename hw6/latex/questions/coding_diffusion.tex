@@ -25,7 +25,7 @@ Students should:
 \item generate 10 base-model images on that evaluation set,
 \item fine-tune the model on the visible training pairs,
 \item generate 10 fine-tuned images on the same evaluation set,
-\item print a LaTeX table containing the final training loss,
+\item print a LaTeX table containing the training loss at the end of each epoch,
 \item save the base and fine-tuned images,
 \item save a 4-column comparison image with the left two columns from the base
 model and the right two columns from the fine-tuned model.
@@ -57,7 +57,7 @@ The released code follows this procedure:
 \noindent\textbf{Visible report.}
 In the written homework they submit, students must include:
 \begin{itemize}
-\item a LaTeX table containing the final training loss,
+\item a LaTeX table containing the training loss at the end of each epoch,
 \item the 4-column comparison figure.
 \end{itemize}
 
@@ -113,29 +113,34 @@ This portion is graded from the submitted fine-tuned evaluation images.
 \end{enumerate}
 
 \begin{solution}
-
+\begin{itemize}
+\item LaTeX loss table:
 \begin{tabular}{lr}
 \hline
-Metric & Value \\
+Epoch & Train loss \\
 \hline
-Train loss & 0.1419 \\
-Base eval score & 4.3555 \\
-Fine-tuned eval score & 5.5019 \\
+1 & -- \\
+2 & -- \\
+\vdots & \vdots \\
+10 & -- \\
 \hline
 \end{tabular}
 
-\bigskip
-
-Running \texttt{python diffusion\_solution.py} produced a final training loss of
-0.1419. Scoring the saved evaluation images with \texttt{python diffusion\_eval.py
---image\_dir outputs/base\_eval\_images} and
-\texttt{python diffusion\_eval.py --image\_dir outputs/finetuned\_eval\_images}
-gave an average aesthetic score of 4.3555 for the base model and 5.5019 for the
-fine-tuned model.
-
+\item Saved comparison image:
 \begin{center}
 \includegraphics[width=\linewidth]{figures/diffusion_eval_comparison.png}
 \end{center}
+
+\item TA/reference autograder summary:
+\begin{tabular}{lcc}
+\hline
+Model & Score & Comment \\
+\hline
+Base & $\approx 4.0$ & reference baseline \\
+Fine-tuned & $\approx 5.4$ & strong result \\
+\hline
+\end{tabular}
+\end{itemize}
 
 \end{solution}
 
