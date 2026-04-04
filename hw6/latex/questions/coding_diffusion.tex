@@ -1,40 +1,52 @@
 \begin{Q}
-\textbf{CLIP-Score Guided LoRA Fine-Tuning for Stable Diffusion 1.5. 50 Points}
+\textbf{Stable Diffusion 1.5 Fine-Tuning on Visible Prompt/Image Pairs. 50 Points}
 
-In this problem, you will adapt pretrained \emph{Stable Diffusion 1.5} with a small LoRA module.
-The target concept is a single prompt family centered on
-\[
-\texttt{a Monet painting of a flying pig}.
-\]
-The training setup is intentionally simple:
+In this problem, you will fine-tune \emph{Stable Diffusion 1.5} on a visible
+set of generated prompt/image pairs.
+The released data-generation pipeline creates:
 \begin{itemize}
-\item create a bank of 16 generated training prompts,
-\item for each prompt, generate 8 candidate images,
-\item score the 8 candidates with a frozen CLIP-style reward model,
-\item keep the top-1 image,
-\item do one LoRA-only diffusion fine-tuning update on that selected image.
+\item 100 visible training prompts,
+\item for each prompt, 20 candidate images from Stable Diffusion 1.5,
+\item a frozen visible reward model to pick the best candidate,
+\item one saved visible training image for each prompt.
 \end{itemize}
-So the visible training loop is ``sample 8, pick top 1, update'', repeated over the 16 prompt variants.
+Students do \emph{not} implement the reward-filtering pipeline.
+Instead, they receive the filtered visible prompt/image pairs and fine-tune on
+them directly.
 
 The visible files are
 \[
 \texttt{data/train.jsonl},\quad
-\texttt{data/val.jsonl}.
+\texttt{data/finetune\_images/}.
 \]
-The hidden file \texttt{data/test.jsonl} will \emph{not} be given to students; it will be used by the autograder after the LoRA checkpoint is saved.
-The visible training split contains exactly 16 generated training prompts.
-The visible validation split contains exactly 1 prompt.
-These train/val/test prompts come from the data-generation file, and the hidden test prompt is not part of the 16-prompt training bank.
-Students should run the script only in \texttt{--mode train} locally.
+Each visible row contains:
+\begin{itemize}
+\item \texttt{id}
+\item \texttt{prompt}
+\item \texttt{image\_path}
+\end{itemize}
+
+The released solution file also contains a separate visible evaluation set of
+10 prompts that are similar to, but not identical with, the training prompts.
+Students should:
+\begin{itemize}
+\item generate 10 base-model images on that evaluation set,
+\item fine-tune the model on the visible training pairs,
+\item generate 10 fine-tuned images on the same evaluation set,
+\item print a LaTeX table containing the final training loss,
+\item save the base and fine-tuned images,
+\item save a 4-column comparison image with the left two columns from the base
+model and the right two columns from the fine-tuned model.
+\end{itemize}
 
 You are provided with a starter Python file.
-Your task is to fill in \emph{only} the functions whose docstring begins with \textbf{Implement:}.
-For clarity, the main graded functions in this assignment are:
+Your task is to fill in \emph{only} the functions whose docstring begins with
+\textbf{Implement:}.
+For clarity, the three graded implementation functions are:
 \begin{align*}
-&\texttt{build\_prompt\_bank},\quad
-\texttt{generate\_candidate\_images},\\
-&\texttt{pick\_top1\_candidate},\quad
-\texttt{train\_lora\_sft}.
+&\texttt{build\_pipeline},\\
+&\texttt{train\_diffusion\_batch},\\
+&\texttt{generate\_prompt\_set}.
 \end{align*}
 
 \medskip
@@ -42,128 +54,113 @@ For clarity, the main graded functions in this assignment are:
 The released code follows this procedure:
 \begin{itemize}
 \item load Stable Diffusion 1.5 from \texttt{diffusers},
-\item freeze the base model and attach a trainable UNet LoRA adapter,
-\item iterate over the 16 visible training prompts,
-\item for each prompt, generate 8 candidate images with at least 20 diffusion inference steps and compute CLIP scores,
-\item keep only the highest-scoring image,
-\item update only the LoRA weights with a diffusion training step on the selected image,
-\item evaluate on one visible validation prompt by generating 4 images,
-\item save a checkpoint containing \emph{LoRA weights only}.
+\item freeze the VAE and text encoder,
+\item fine-tune the UNet on the visible prompt/image pairs,
+\item shuffle the visible rows each epoch,
+\item train with one fixed default configuration,
+\item save visible base and fine-tuned images on the 10 evaluation prompts.
 \end{itemize}
 
 \medskip
-\noindent\textbf{Validation report.}
-For the visible validation prompt, students must show:
+\noindent\textbf{Visible report.}
+Students must report:
 \begin{itemize}
-\item 4 generated images,
-\item the CLIP score for each image,
-\item the average score without LoRA,
-\item the average score with LoRA,
-\item the improvement from LoRA.
+\item a LaTeX table containing the final training loss,
+\item the 10 base-model evaluation images,
+\item the 10 fine-tuned evaluation images,
+\item the 4-column comparison figure,
+\item the base-model evaluation score from \texttt{diffusion\_eval.py},
+\item the fine-tuned evaluation score from \texttt{diffusion\_eval.py}.
 \end{itemize}
-The code saves a validation image sheet for this purpose.
-
-\medskip
-\noindent\textbf{Hidden evaluation.}
-Gradescope will load the submitted LoRA-only checkpoint and evaluate it on one hidden test prompt.
-For transparency, the released script reports both the frozen-base average score and the LoRA-adapted average score on 4 generated test images, together with the improvement.
-Students do not see the hidden test prompt.
 
 \medskip
 \noindent\textbf{Autograder.}
 Gradescope will:
 \begin{itemize}
-\item run unit tests on the four core functions above,
-\item run your training script,
-\item load \texttt{outputs/diffusion\_model.pt},
-\item verify that the checkpoint contains LoRA weights only,
-\item evaluate the saved adapter on the hidden test prompt.
+\item run unit tests on the three core functions above,
+\item run \texttt{python diffusion\_solution.py},
+\item verify that the base and fine-tuned evaluation images are produced,
+\item score the saved images with \texttt{python diffusion\_eval.py} on the
+visible evaluation prompts.
 \end{itemize}
 The score breakdown is:
 \begin{itemize}
-\item 40 points for correct implementations of the four core functions,
-\item 10 points for reporting the required validation generations and average score from \texttt{--mode train}.
+\item 36 points for correct implementations of the three core functions
+(12 points each),
+\item 8 points for the final report and required pictures,
+\item 6 points for the evaluation score of the saved fine-tuned images.
 \end{itemize}
 
 \begin{enumerate}
 
-\item \textbf{\texttt{build\_prompt\_bank}: construct the 16 training prompts (10 points).}\\
-Implement \texttt{build\_prompt\_bank()}.
-It should return exactly the 16 training prompts generated by the data-generation script.
-These are held-in training prompts related to the overall image-generation task, but they are not copies of the held-out validation or hidden-test prompt.
+\item \textbf{\texttt{build\_pipeline}: build the fine-tuning pipeline (12 points).}\\
+Implement \texttt{build\_pipeline(...)}.
+It should load Stable Diffusion 1.5, move it to the target device, freeze the
+VAE and text encoder, and leave the UNet trainable.
 
-\item \textbf{\texttt{generate\_candidate\_images}: generate 8 images for one prompt (10 points).}\\
-Implement \texttt{generate\_candidate\_images(...)}.
-For one prompt and a list of seeds, it should deterministically produce the candidate images with Stable Diffusion 1.5.
-Use at least 20 inference steps for every generated image.
+\item \textbf{\texttt{train\_diffusion\_batch}: one diffusion training step (12 points).}\\
+Implement \texttt{train\_diffusion\_batch(...)}.
+For one batch of visible prompt/image rows, it should load the saved images,
+encode them into latents, sample diffusion noise and timesteps, and run one
+UNet update step with the diffusion loss.
 
-\item \textbf{\texttt{pick\_top1\_candidate}: select the best image by CLIP score (10 points).}\\
-Implement \texttt{pick\_top1\_candidate(...)}.
-It should score all generated candidates with frozen CLIP, identify the top-1 image, and return the selected image, its score, and its seed.
+\item \textbf{\texttt{generate\_prompt\_set}: generate one image for each evaluation prompt (12 points).}\\
+Implement \texttt{generate\_prompt\_set(...)}.
+It should deterministically generate one image for each prompt in the provided
+evaluation set, using the configured seeds and generation hyperparameters.
 
-\item \textbf{\texttt{train\_lora\_sft}: LoRA fine-tuning with top-1 self-training (10 points).}\\
-Implement \texttt{train\_lora\_sft(...)}.
-The training loop should:
+\item \textbf{Final Reporting and Picture Submission (8 points).}\\
+Run the released training script and include:
 \begin{itemize}
-\item iterate over the 16 visible training prompts,
-\item generate 8 candidates per prompt with at least 20 inference steps,
-\item pick the top-1 candidate by CLIP score,
-\item do one LoRA-only diffusion update using that selected image,
-\item evaluate after each epoch on the visible validation prompt,
-\item keep the best LoRA weights by validation average score and restore them before saving.
+\item the LaTeX loss table,
+\item the 10 base-model evaluation images,
+\item the 10 fine-tuned evaluation images,
+\item the saved comparison image.
 \end{itemize}
 
-\item \textbf{Validation-Mode Report and Checkpoint Submission (10 points).}\\
-Run the script in \texttt{--mode train} and report:
-\begin{itemize}
-\item the visible validation prompt,
-\item the 4 per-image validation scores without LoRA,
-\item the 4 per-image validation scores with LoRA,
-\item the average validation score without LoRA,
-\item the average validation score with LoRA,
-\item the improvement from LoRA,
-\item the saved validation image sheet.
-\end{itemize}
-Students do not have access to the hidden test prompt.
-Submit \texttt{outputs/diffusion\_model.pt} to Gradescope, and the autograder will evaluate it on hidden test data, reporting both the frozen-base and LoRA-adapted average scores over 4 images.
+\item \textbf{Evaluation Score (6 points).}\\
+Run \texttt{python diffusion\_eval.py} on the saved fine-tuned evaluation
+images and report the resulting score.
+\end{enumerate}
 
 \begin{solution}
 
-Reference numbers depend on the installed SD 1.5 checkpoint, CLIP checkpoint, GPU, and runtime environment.
-The key requirement is that the implementation uses Stable Diffusion 1.5, frozen CLIP scoring, UNet LoRA, and at least 20 inference steps per generated image.
+Reference numbers depend on the installed SD 1.5 checkpoint, GPU, and runtime
+environment.
+For TA/reference grading on the visible 10-prompt evaluation set:
+\begin{itemize}
+\item a base-model score around \texttt{4.0} is reasonable,
+\item a solid fine-tuned score around \texttt{5.4} is a good target,
+\item grading should use a tolerance band rather than exact equality.
+\end{itemize}
 
 \bigskip
 
-\begin{tabular}{lccc}
+\begin{tabular}{lr}
 \hline
-Split & Base avg & LoRA avg & Improvement \\
+Metric & Value \\
 \hline
-Validation & -- & -- & -- \\
-Hidden test & -- & -- & -- \\
+Train loss & -- \\
 \hline
 \end{tabular}
 
 \bigskip
 
-Visible validation prompt: \texttt{an impressionist Monet style painting of a pig flying through the sky}
+Visible evaluation score summary:
+\begin{tabular}{lcc}
+\hline
+Model & Score & Comment \\
+\hline
+Base & $\approx 4.0$ & reference baseline \\
+Fine-tuned & $\approx 5.4$ & strong visible result \\
+\hline
+\end{tabular}
 
-\smallskip
+\bigskip
 
-Validation base image scores:
-\[
---,\quad --,\quad --,\quad --
-\]
-
-\smallskip
-
-Validation LoRA image scores:
-\[
---,\quad --,\quad --,\quad --
-\]
-
-The checkpoint should contain LoRA weights only.
+Include the saved base image set, fine-tuned image set, and comparison figure
+in the final report.
 
 \end{solution}
 
-\end{enumerate}
 \end{Q}

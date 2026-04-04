@@ -1,7 +1,10 @@
 torch
+torchvision
+tqdm
 pillow
-diffusers
-transformers
-peft>=0.17.0
+diffusers==0.34.0
+transformers<5
+peft>=0.17.0,<0.19
 accelerate
 safetensors
+open_clip_torch

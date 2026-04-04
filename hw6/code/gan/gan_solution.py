@@ -1,21 +1,18 @@
 #!/usr/bin/env python3
 """
-Controllable generation with a lightweight pretrained-StyleGAN stand-in.
+Class-conditioned GAN in the 16D latent space of a staff-trained MNIST VAE.
 
-This reference solution keeps the assignment offline and deterministic:
-  - a frozen base generator maps latent seeds to small image tensors
-  - a trainable controller injects an attribute-conditioned style offset
-  - a frozen attribute scorer evaluates controllability
-  - validation balances control accuracy and preservation of the base image
-
-The structure mirrors the intended StyleGAN adaptation workflow while staying
-small enough for local autograding.
+The intended workflow is:
+  - load the provided latent-space train split
+  - train a simple class-conditioned generator and discriminator in latent space
+  - save the generator checkpoint
+  - decode one generated latent per class with the provided VAE decoder
+  - save 10,000 generated latent points for distribution matching
 """
 
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import random
 from dataclasses import dataclass
@@ -24,14 +21,18 @@ from typing import Any, Dict, List, Sequence, Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torchvision
 from torch.utils.data import DataLoader, Dataset
 
+try:
+    from tqdm.auto import tqdm
+except ImportError:
+    tqdm = None
 
-ATTR_NAMES = ["red", "green", "blue", "striped"]
-IMAGE_SIZE = 16
-IMAGE_DIM = 3 * IMAGE_SIZE * IMAGE_SIZE
-LATENT_DIM = 32
-STYLE_DIM = 64
+
+NUM_CLASSES = 10
+LATENT_DIM = 16
+NOISE_DIM = 16
 
 
 def set_seed(seed: int) -> None:
@@ -43,304 +44,589 @@ def set_seed(seed: int) -> None:
     torch.backends.cudnn.benchmark = False
 
 
-def load_jsonl(path: str) -> List[Dict[str, Any]]:
-    rows: List[Dict[str, Any]] = []
-    with open(path, "r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if line:
-                rows.append(json.loads(line))
-    return rows
+def load_latent_split(path: str) -> Dict[str, torch.Tensor]:
+    payload = torch.load(path, map_location="cpu", weights_only=True)
+    if "latents" not in payload or "labels" not in payload:
+        raise ValueError(f"expected 'latents' and 'labels' in {path}")
+    return {
+        "latents": torch.as_tensor(payload["latents"], dtype=torch.float32),
+        "labels": torch.as_tensor(payload["labels"], dtype=torch.long),
+    }
 
 
-def latent_from_seed(seed: int) -> torch.Tensor:
-    gen = torch.Generator().manual_seed(int(seed))
-    return torch.randn(LATENT_DIM, generator=gen)
-
-
-class FrozenGenerator(nn.Module):
-    def __init__(self) -> None:
+class Encoder(nn.Module):
+    def __init__(self, z_dim: int) -> None:
         super().__init__()
-        gen = torch.Generator().manual_seed(7)
-        self.fc1 = nn.Linear(LATENT_DIM, STYLE_DIM)
-        self.fc2 = nn.Linear(STYLE_DIM, IMAGE_DIM)
-        with torch.no_grad():
-            self.fc1.weight.copy_(0.20 * torch.randn(self.fc1.weight.shape, generator=gen))
-            self.fc1.bias.copy_(0.05 * torch.randn(self.fc1.bias.shape, generator=gen))
-            self.fc2.weight.copy_(0.10 * torch.randn(self.fc2.weight.shape, generator=gen))
-            self.fc2.bias.copy_(0.05 * torch.randn(self.fc2.bias.shape, generator=gen))
-        for p in self.parameters():
-            p.requires_grad_(False)
+        self.conv = nn.Sequential(
+            nn.Conv2d(1, 32, kernel_size=4, stride=2, padding=1),
+            nn.SiLU(),
+            nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=1),
+            nn.SiLU(),
+        )
+        self.fc = nn.Sequential(
+            nn.Linear(64 * 7 * 7, 256),
+            nn.SiLU(),
+            nn.Linear(256, 128),
+            nn.SiLU(),
+        )
+        self.fc_mu = nn.Linear(128, z_dim)
+        self.fc_logvar = nn.Linear(128, z_dim)
 
-    def forward(self, z: torch.Tensor, style_delta: torch.Tensor | None = None) -> torch.Tensor:
-        h = torch.tanh(self.fc1(z))
-        if style_delta is not None:
-            h = h + style_delta
-        x = self.fc2(h).view(-1, 3, IMAGE_SIZE, IMAGE_SIZE)
-        return torch.sigmoid(x)
+    def forward(self, y: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        h_img = self.conv(y).reshape(y.size(0), -1)
+        h = self.fc(h_img)
+        return self.fc_mu(h), self.fc_logvar(h)
 
 
-class Controller(nn.Module):
-    def __init__(self, num_attrs: int) -> None:
+class Decoder(nn.Module):
+    def __init__(self, z_dim: int) -> None:
         super().__init__()
-        self.embed = nn.Embedding(num_attrs, STYLE_DIM)
-        nn.init.zeros_(self.embed.weight)
+        self.fc = nn.Sequential(
+            nn.Linear(z_dim, 256),
+            nn.SiLU(),
+            nn.Linear(256, 64 * 7 * 7),
+            nn.SiLU(),
+        )
+        self.deconv = nn.Sequential(
+            nn.ConvTranspose2d(64, 32, kernel_size=4, stride=2, padding=1),
+            nn.SiLU(),
+            nn.ConvTranspose2d(32, 16, kernel_size=4, stride=2, padding=1),
+            nn.SiLU(),
+            nn.Conv2d(16, 1, kernel_size=3, padding=1),
+        )
 
-    def forward(self, attr_ids: torch.Tensor) -> torch.Tensor:
-        return self.embed(attr_ids)
+    def forward(self, z: torch.Tensor) -> torch.Tensor:
+        h = self.fc(z)
+        h = h.view(z.size(0), 64, 7, 7)
+        return self.deconv(h)
 
 
-class FrozenAttributeScorer(nn.Module):
-    def __init__(self) -> None:
+class VAE(nn.Module):
+    def __init__(self, z_dim: int) -> None:
         super().__init__()
-        stripe = torch.zeros(1, IMAGE_SIZE, IMAGE_SIZE)
-        stripe[:, :, ::2] = 1.0
-        stripe[:, :, 1::2] = -1.0
-        self.register_buffer("stripe_mask", stripe)
-
-    def forward(self, images: torch.Tensor) -> torch.Tensor:
-        red = images[:, 0].mean(dim=(1, 2)) - 0.5 * (images[:, 1].mean(dim=(1, 2)) + images[:, 2].mean(dim=(1, 2)))
-        green = images[:, 1].mean(dim=(1, 2)) - 0.5 * (images[:, 0].mean(dim=(1, 2)) + images[:, 2].mean(dim=(1, 2)))
-        blue = images[:, 2].mean(dim=(1, 2)) - 0.5 * (images[:, 0].mean(dim=(1, 2)) + images[:, 1].mean(dim=(1, 2)))
-        striped = (images.mean(dim=1, keepdim=True) * self.stripe_mask).mean(dim=(1, 2, 3))
-        return torch.stack([red, green, blue, striped], dim=-1)
+        self.encoder = Encoder(z_dim=z_dim)
+        self.decoder = Decoder(z_dim=z_dim)
 
 
-class ControlDataset(Dataset):
-    def __init__(self, rows: Sequence[Dict[str, Any]]) -> None:
-        self.rows = list(rows)
+def load_decoder(path: str, device: torch.device) -> Decoder:
+    payload = torch.load(path, map_location="cpu", weights_only=True)
+    config = payload["config"]
+    model = VAE(z_dim=int(config["latent_dim"]))
+    model.load_state_dict(payload["model_state_dict"])
+    model = model.to(device)
+    model.eval()
+    for param in model.parameters():
+        param.requires_grad_(False)
+    return model.decoder
+
+
+class LatentDataset(Dataset):
+    def __init__(self, latents: torch.Tensor, labels: torch.Tensor) -> None:
+        self.latents = latents
+        self.labels = labels
 
     def __len__(self) -> int:
-        return len(self.rows)
+        return int(self.latents.size(0))
 
-    def __getitem__(self, idx: int) -> Dict[str, Any]:
-        row = self.rows[idx]
+    def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
         return {
-            "id": str(row["id"]),
-            "seed": int(row["seed"]),
-            "target_attr": int(row["target_attr"]),
+            "latents": self.latents[idx],
+            "labels": self.labels[idx],
         }
 
 
-def collate_rows(batch: List[Dict[str, Any]]) -> Dict[str, Any]:
+def collate_latents(batch: List[Dict[str, torch.Tensor]]) -> Dict[str, torch.Tensor]:
     return {
-        "id": [b["id"] for b in batch],
-        "seed": torch.tensor([b["seed"] for b in batch], dtype=torch.long),
-        "target_attr": torch.tensor([b["target_attr"] for b in batch], dtype=torch.long),
+        "latents": torch.stack([item["latents"] for item in batch], dim=0),
+        "labels": torch.stack([item["labels"] for item in batch], dim=0),
     }
 
 
-def build_generator_and_controllers(device: torch.device) -> Tuple[FrozenGenerator, Controller, FrozenAttributeScorer]:
+class Generator(nn.Module):
+    def __init__(self, noise_dim: int, latent_dim: int, num_classes: int, hidden_dim: int) -> None:
+        super().__init__()
+        self.label_embed = nn.Embedding(num_classes, 32)
+        self.net = nn.Sequential(
+            nn.Linear(noise_dim + 32, hidden_dim),
+            nn.SiLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.SiLU(),
+            nn.Linear(hidden_dim, latent_dim),
+        )
+
+    def forward(self, noise: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
+        label_features = self.label_embed(labels)
+        return self.net(torch.cat([noise, label_features], dim=1))
+
+
+class Discriminator(nn.Module):
+    def __init__(self, latent_dim: int, num_classes: int, hidden_dim: int) -> None:
+        super().__init__()
+        self.label_embed = nn.Embedding(num_classes, 32)
+        self.net = nn.Sequential(
+            nn.Linear(latent_dim + 32, hidden_dim),
+            nn.SiLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.SiLU(),
+            nn.Linear(hidden_dim, 1),
+        )
+
+    def forward(self, latents: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
+        label_features = self.label_embed(labels)
+        return self.net(torch.cat([latents, label_features], dim=1)).squeeze(1)
+
+
+def sample_noise(batch_size: int, noise_dim: int, device: torch.device, seed: int | None = None) -> torch.Tensor:
+    if seed is None:
+        return torch.randn(batch_size, noise_dim, device=device)
+    gen = torch.Generator(device="cpu").manual_seed(seed)
+    return torch.randn(batch_size, noise_dim, generator=gen).to(device)
+
+
+def build_gan_models(device: torch.device, hidden_dim: int = 128) -> Tuple[Generator, Discriminator]:
     """
     Implement:
-        Build the frozen pretrained generator, trainable control module,
-        and frozen attribute scorer.
+        Build the class-conditioned latent-space generator and discriminator,
+        move them to the requested device, and return them.
+
+    Args:
+        device:
+            Torch device where both models should live.
+        hidden_dim:
+            Hidden width for the MLP layers inside the generator and
+            discriminator.
+
+    Returns:
+        A tuple `(generator, discriminator)` where:
+          - `generator` maps `(noise, labels)` to fake latent vectors
+          - `discriminator` maps `(latents, labels)` to real/fake logits
+
+    Notes:
+        - Use the provided `Generator` and `Discriminator` classes.
+        - The generator should use `NOISE_DIM` input noise and produce
+          `LATENT_DIM` outputs.
+        - The discriminator should score latent vectors of size `LATENT_DIM`.
     """
-    generator = FrozenGenerator().to(device)
-    controller = Controller(num_attrs=len(ATTR_NAMES)).to(device)
-    scorer = FrozenAttributeScorer().to(device)
-    scorer.eval()
-    return generator, controller, scorer
+    generator = Generator(
+        noise_dim=NOISE_DIM,
+        latent_dim=LATENT_DIM,
+        num_classes=NUM_CLASSES,
+        hidden_dim=hidden_dim,
+    ).to(device)
+    discriminator = Discriminator(
+        latent_dim=LATENT_DIM,
+        num_classes=NUM_CLASSES,
+        hidden_dim=hidden_dim,
+    ).to(device)
+    return generator, discriminator
 
 
-def sample_training_batch(batch: Dict[str, Any], device: torch.device) -> Dict[str, torch.Tensor]:
-    """
-    Implement:
-        Convert seeds to latent codes and move the training batch to device.
-    """
-    latents = torch.stack([latent_from_seed(int(seed)) for seed in batch["seed"].tolist()], dim=0)
-    return {
-        "latents": latents.to(device),
-        "target_attr": batch["target_attr"].to(device),
-    }
-
-
-def attribute_control_loss(
-    generator: FrozenGenerator,
-    controller: Controller,
-    scorer: FrozenAttributeScorer,
-    train_batch: Dict[str, torch.Tensor],
-    preservation_weight: float,
-    reg_weight: float,
+def generator_step_loss(
+    generator: Generator,
+    discriminator: Discriminator,
+    labels: torch.Tensor,
+    noise: torch.Tensor,
 ) -> Tuple[torch.Tensor, Dict[str, float]]:
     """
     Implement:
-        Combine attribute classification loss, preservation loss, and controller regularization.
+        Generate class-conditioned fake latents and compute the non-saturating
+        generator loss against the discriminator.
+
+    Args:
+        generator:
+            The class-conditioned latent generator.
+        discriminator:
+            The class-conditioned discriminator.
+        labels:
+            Tensor of digit labels with shape `(B,)`.
+        noise:
+            Noise tensor with shape `(B, NOISE_DIM)`.
+
+    Returns:
+        A tuple `(loss, metrics)` where:
+          - `loss` is a scalar tensor used for backpropagation
+          - `metrics` is a dict of Python floats for logging
+
+    Required behavior:
+        - Generate fake latents from `(noise, labels)`.
+        - Score them with the discriminator using the same labels.
+        - Use the non-saturating GAN generator loss, meaning fake logits
+          should be pushed toward the real label (`1`).
+
+    Expected metric keys:
+        - `g_loss`
+        - `g_logit_mean`
     """
-    latents = train_batch["latents"]
-    target_attr = train_batch["target_attr"]
-    base_images = generator(latents)
-    deltas = controller(target_attr)
-    images = generator(latents, style_delta=deltas)
-    logits = scorer(images)
-    attr_loss = F.cross_entropy(logits, target_attr)
-    preserve_loss = F.mse_loss(images, base_images)
-    reg_loss = deltas.pow(2).mean()
-    total = attr_loss + preservation_weight * preserve_loss + reg_weight * reg_loss
-    metrics = {
-        "loss": float(total.item()),
-        "attr_loss": float(attr_loss.item()),
-        "preserve_loss": float(preserve_loss.item()),
-        "reg_loss": float(reg_loss.item()),
+    fake_latents = generator(noise, labels)
+    fake_logits = discriminator(fake_latents, labels)
+    loss = F.binary_cross_entropy_with_logits(fake_logits, torch.ones_like(fake_logits))
+    return loss, {
+        "g_loss": float(loss.item()),
+        "g_logit_mean": float(fake_logits.mean().item()),
     }
-    return total, metrics
+
+
+def discriminator_step_loss(
+    generator: Generator,
+    discriminator: Discriminator,
+    real_latents: torch.Tensor,
+    labels: torch.Tensor,
+    noise: torch.Tensor,
+) -> Tuple[torch.Tensor, Dict[str, float]]:
+    """
+    Implement:
+        Compute the discriminator logistic loss on real latents from the data
+        split and fake latents sampled from the generator.
+
+    Args:
+        generator:
+            The class-conditioned latent generator.
+        discriminator:
+            The class-conditioned discriminator.
+        real_latents:
+            Real latent tensor of shape `(B, LATENT_DIM)` from the dataset.
+        labels:
+            Class labels for the real batch, shape `(B,)`.
+        noise:
+            Noise tensor with shape `(B, NOISE_DIM)` used to create fake
+            latents with the same class labels.
+
+    Returns:
+        A tuple `(loss, metrics)` where:
+          - `loss` is a scalar tensor used for backpropagation
+          - `metrics` is a dict of Python floats for logging
+
+    Required behavior:
+        - Sample fake latents from the generator using `(noise, labels)`.
+        - Treat real logits as target `1` and fake logits as target `0`.
+        - Add the real and fake BCE-with-logits losses.
+        - Do not backpropagate into the generator during the discriminator
+          loss computation.
+
+    Expected metric keys:
+        - `d_loss`
+        - `d_real_logit_mean`
+        - `d_fake_logit_mean`
+    """
+    with torch.no_grad():
+        fake_latents = generator(noise, labels)
+    real_logits = discriminator(real_latents, labels)
+    fake_logits = discriminator(fake_latents, labels)
+    real_loss = F.binary_cross_entropy_with_logits(real_logits, torch.ones_like(real_logits))
+    fake_loss = F.binary_cross_entropy_with_logits(fake_logits, torch.zeros_like(fake_logits))
+    loss = real_loss + fake_loss
+    return loss, {
+        "d_loss": float(loss.item()),
+        "d_real_logit_mean": float(real_logits.mean().item()),
+        "d_fake_logit_mean": float(fake_logits.mean().item()),
+    }
+
+
+def train_gan_batch(
+    generator: Generator,
+    discriminator: Discriminator,
+    d_opt: torch.optim.Optimizer,
+    g_opt: torch.optim.Optimizer,
+    batch: Dict[str, torch.Tensor],
+    device: torch.device,
+) -> Dict[str, float]:
+    """
+    Implement:
+        Run one alternating GAN training step on a batch:
+        first update the discriminator on real and fake latent points,
+        then update the generator against the discriminator.
+        Return scalar logging metrics for the batch.
+
+    Args:
+        generator:
+            The class-conditioned latent generator.
+        discriminator:
+            The class-conditioned discriminator.
+        d_opt:
+            Optimizer for the discriminator parameters.
+        g_opt:
+            Optimizer for the generator parameters.
+        batch:
+            Dictionary from the dataloader with keys:
+              - `latents`: tensor of shape `(B, LATENT_DIM)`
+              - `labels`: tensor of shape `(B,)`
+        device:
+            Torch device used for training.
+
+    Returns:
+        A dict of Python floats containing batch logging metrics.
+
+    Required behavior:
+        - Move `batch["latents"]` and `batch["labels"]` to `device`.
+        - Sample fresh noise for the discriminator step.
+        - Compute discriminator loss with `discriminator_step_loss(...)`,
+          zero discriminator gradients, backpropagate, and step `d_opt`.
+        - Sample fresh noise for the generator step.
+        - Compute generator loss with `generator_step_loss(...)`,
+          zero generator gradients, backpropagate, and step `g_opt`.
+        - Return at least:
+          `d_loss`, `g_loss`, `d_real_logit_mean`, `d_fake_logit_mean`,
+          and `g_logit_mean`.
+    """
+    real_latents = batch["latents"].to(device)
+    labels = batch["labels"].to(device)
+
+    d_noise = sample_noise(labels.size(0), NOISE_DIM, device)
+    d_loss, d_metrics = discriminator_step_loss(generator, discriminator, real_latents, labels, d_noise)
+    d_opt.zero_grad(set_to_none=True)
+    d_loss.backward()
+    d_opt.step()
+
+    g_noise = sample_noise(labels.size(0), NOISE_DIM, device)
+    g_loss, g_metrics = generator_step_loss(generator, discriminator, labels, g_noise)
+    g_opt.zero_grad(set_to_none=True)
+    g_loss.backward()
+    g_opt.step()
+
+    return {
+        "d_loss": float(d_loss.item()),
+        "g_loss": float(g_loss.item()),
+        "d_real_logit_mean": d_metrics["d_real_logit_mean"],
+        "d_fake_logit_mean": d_metrics["d_fake_logit_mean"],
+        "g_logit_mean": g_metrics["g_logit_mean"],
+    }
+
+
+def covariance(x: torch.Tensor) -> torch.Tensor:
+    x_centered = x - x.mean(dim=0, keepdim=True)
+    denom = max(int(x_centered.size(0)) - 1, 1)
+    return x_centered.T @ x_centered / denom
+
+
+def sqrtm_psd(matrix: torch.Tensor) -> torch.Tensor:
+    evals, evecs = torch.linalg.eigh(matrix)
+    evals = torch.clamp(evals, min=0.0)
+    return (evecs * torch.sqrt(evals).unsqueeze(0)) @ evecs.T
+
+
+def frechet_distance(real_latents: torch.Tensor, fake_latents: torch.Tensor) -> float:
+    mu_r = real_latents.mean(dim=0)
+    mu_f = fake_latents.mean(dim=0)
+    cov_r = covariance(real_latents)
+    cov_f = covariance(fake_latents)
+    cov_r_sqrt = sqrtm_psd(cov_r)
+    middle = cov_r_sqrt @ cov_f @ cov_r_sqrt
+    middle = 0.5 * (middle + middle.T)
+    cov_prod_sqrt = sqrtm_psd(middle)
+    mean_term = (mu_r - mu_f).square().sum()
+    trace_term = torch.trace(cov_r + cov_f - 2.0 * cov_prod_sqrt)
+    value = mean_term + trace_term
+    return float(torch.clamp(value, min=0.0).item())
 
 
 @torch.no_grad()
-def evaluate_controller(
-    generator: FrozenGenerator,
-    controller: Controller,
-    scorer: FrozenAttributeScorer,
-    dataset: Dataset,
-    batch_size: int,
+def sample_conditioned_latents(
+    generator: Generator,
+    class_counts: Sequence[int],
     device: torch.device,
-) -> Dict[str, float]:
-    loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, collate_fn=collate_rows)
-    controller.eval()
-    total = 0
-    correct = 0
-    preserve_sum = 0.0
-    loss_sum = 0.0
-    for batch in loader:
-        tb = sample_training_batch(batch, device)
-        latents = tb["latents"]
-        target_attr = tb["target_attr"]
-        base_images = generator(latents)
-        images = generator(latents, style_delta=controller(target_attr))
-        logits = scorer(images)
-        loss_sum += float(F.cross_entropy(logits, target_attr).item())
-        correct += int((torch.argmax(logits, dim=-1) == target_attr).sum().item())
-        preserve_sum += float(1.0 - F.mse_loss(images, base_images).item())
-        total += int(target_attr.numel())
-    attr_acc = correct / max(total, 1)
-    preserve = preserve_sum / max(len(loader), 1)
-    total_score = 0.65 * attr_acc + 0.35 * preserve
+    seed_offset: int,
+) -> Dict[str, torch.Tensor]:
+    latents = []
+    labels = []
+    for class_id, count in enumerate(class_counts):
+        if count <= 0:
+            continue
+        class_labels = torch.full((count,), class_id, dtype=torch.long, device=device)
+        noise = sample_noise(count, NOISE_DIM, device, seed=seed_offset + class_id)
+        class_latents = generator(noise, class_labels)
+        latents.append(class_latents.cpu())
+        labels.append(class_labels.cpu())
     return {
-        "attr_acc": attr_acc,
-        "preserve": preserve,
-        "total_score": total_score,
-        "loss": loss_sum / max(len(loader), 1),
+        "latents": torch.cat(latents, dim=0),
+        "labels": torch.cat(labels, dim=0),
     }
 
 
 @dataclass(frozen=True)
-class SweepConfig:
-    name: str
-    lr: float
-    preservation_weight: float
-    reg_weight: float
+class GanConfig:
+    hidden_dim: int
+    lr_g: float
+    lr_d: float
     epochs: int
 
 
-def default_sweep() -> List[SweepConfig]:
-    return [
-        SweepConfig("A", lr=0.20, preservation_weight=2.0, reg_weight=0.010, epochs=20),
-        SweepConfig("B", lr=0.15, preservation_weight=3.5, reg_weight=0.015, epochs=24),
-        SweepConfig("C", lr=0.10, preservation_weight=5.0, reg_weight=0.020, epochs=28),
-    ]
+def default_config() -> GanConfig:
+    return GanConfig(hidden_dim=128, lr_g=1.5e-3, lr_d=1.5e-3, epochs=24)
 
 
-def train_controller(
-    generator: FrozenGenerator,
-    controller: Controller,
-    scorer: FrozenAttributeScorer,
-    train_ds: Dataset,
-    val_ds: Dataset,
-    cfg: SweepConfig,
+def train_gan(
+    generator: Generator,
+    discriminator: Discriminator,
+    train_ds: LatentDataset,
+    cfg: GanConfig,
     batch_size: int,
     device: torch.device,
-) -> Tuple[Controller, Dict[str, float]]:
-    """
-    Implement:
-        Train the controller and restore the best checkpoint by validation total score.
-    """
-    loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, collate_fn=collate_rows)
-    opt = torch.optim.Adam(controller.parameters(), lr=cfg.lr)
-    best_state: Dict[str, torch.Tensor] | None = None
-    best_metrics: Dict[str, float] | None = None
-    best_key = -1e9
-    for _ in range(cfg.epochs):
-        controller.train()
-        for batch in loader:
-            tb = sample_training_batch(batch, device)
-            loss, _ = attribute_control_loss(
-                generator=generator,
-                controller=controller,
-                scorer=scorer,
-                train_batch=tb,
-                preservation_weight=cfg.preservation_weight,
-                reg_weight=cfg.reg_weight,
+    run_name: str = "train",
+) -> Tuple[Generator, Dict[str, float]]:
+    loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, collate_fn=collate_latents)
+    g_opt = torch.optim.Adam(generator.parameters(), lr=cfg.lr_g, betas=(0.5, 0.999))
+    d_opt = torch.optim.Adam(discriminator.parameters(), lr=cfg.lr_d, betas=(0.5, 0.999))
+    last_metrics: Dict[str, float] | None = None
+
+    for epoch in range(cfg.epochs):
+        generator.train()
+        discriminator.train()
+        epoch_d_loss = 0.0
+        epoch_g_loss = 0.0
+        num_steps = 0
+        if tqdm is not None:
+            batch_iter = tqdm(
+                loader,
+                desc=f"{run_name} epoch {epoch + 1:02d}/{cfg.epochs:02d}",
+                leave=False,
             )
-            opt.zero_grad()
-            loss.backward()
-            opt.step()
-        metrics = evaluate_controller(generator, controller, scorer, val_ds, batch_size, device)
-        key = metrics["total_score"]
-        if key > best_key:
-            best_key = key
-            best_metrics = metrics
-            best_state = {k: v.detach().cpu().clone() for k, v in controller.state_dict().items()}
-    if best_state is None or best_metrics is None:
-        raise RuntimeError("training did not produce a checkpoint")
-    controller.load_state_dict(best_state)
-    return controller, best_metrics
+        else:
+            batch_iter = loader
+
+        for batch in batch_iter:
+            batch_metrics = train_gan_batch(
+                generator=generator,
+                discriminator=discriminator,
+                d_opt=d_opt,
+                g_opt=g_opt,
+                batch=batch,
+                device=device,
+            )
+
+            epoch_d_loss += batch_metrics["d_loss"]
+            epoch_g_loss += batch_metrics["g_loss"]
+            num_steps += 1
+            avg_d_loss = epoch_d_loss / num_steps
+            avg_g_loss = epoch_g_loss / num_steps
+            if tqdm is not None:
+                batch_iter.set_postfix(
+                    d_loss=f"{avg_d_loss:.4f}",
+                    g_loss=f"{avg_g_loss:.4f}",
+                )
+
+        avg_d_loss = epoch_d_loss / max(num_steps, 1)
+        avg_g_loss = epoch_g_loss / max(num_steps, 1)
+        last_metrics = {
+            "d_loss": avg_d_loss,
+            "g_loss": avg_g_loss,
+        }
+        print(
+            f"[{run_name}] epoch {epoch + 1:02d}/{cfg.epochs:02d} "
+            f"d_loss={avg_d_loss:.4f} g_loss={avg_g_loss:.4f}",
+            flush=True,
+        )
+    if last_metrics is None:
+        raise RuntimeError("GAN training did not produce any metrics")
+    return generator, last_metrics
+
+
+def save_checkpoint(path: str, generator: Generator, cfg: GanConfig, metrics: Dict[str, float]) -> None:
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    torch.save(
+        {
+            "generator": {k: v.detach().cpu() for k, v in generator.state_dict().items()},
+            "config": {
+                "hidden_dim": cfg.hidden_dim,
+                "lr_g": cfg.lr_g,
+                "lr_d": cfg.lr_d,
+                "epochs": cfg.epochs,
+            },
+            "metrics": metrics,
+            "latent_dim": LATENT_DIM,
+            "noise_dim": NOISE_DIM,
+            "num_classes": NUM_CLASSES,
+        },
+        path,
+    )
+
+
+def load_checkpoint(path: str, device: torch.device) -> Tuple[Generator, Dict[str, Any]]:
+    payload = torch.load(path, map_location="cpu", weights_only=True)
+    hidden_dim = int(payload["config"]["hidden_dim"])
+    generator, _ = build_gan_models(device=device, hidden_dim=hidden_dim)
+    generator.load_state_dict(payload["generator"])
+    generator.eval()
+    return generator, payload
+
+
+def sample_fixed_class_counts(samples_per_class: int) -> List[int]:
+    return [samples_per_class for _ in range(NUM_CLASSES)]
+
+
+def stratified_subset(dataset: LatentDataset, samples_per_class: int, seed: int) -> Dict[str, torch.Tensor]:
+    rng = random.Random(seed)
+    latents = []
+    labels = []
+    for class_id in range(NUM_CLASSES):
+        class_indices = torch.nonzero(dataset.labels == class_id, as_tuple=False).flatten().tolist()
+        if len(class_indices) < samples_per_class:
+            raise ValueError(
+                f"class {class_id} only has {len(class_indices)} examples, need {samples_per_class}"
+            )
+        chosen = rng.sample(class_indices, samples_per_class)
+        latents.append(dataset.latents[chosen])
+        labels.append(dataset.labels[chosen])
+    return {
+        "latents": torch.cat(latents, dim=0),
+        "labels": torch.cat(labels, dim=0),
+    }
+
+
+def latent_match_score(reference: torch.Tensor, candidate: torch.Tensor) -> Dict[str, float]:
+    avg_frechet = frechet_distance(reference, candidate)
+    return {
+        "avg_frechet": avg_frechet,
+    }
 
 
 @torch.no_grad()
-def generate_controlled_images(
-    generator: FrozenGenerator,
-    controller: Controller,
-    scorer: FrozenAttributeScorer,
-    seeds: Sequence[int],
-    attr_ids: Sequence[int],
+def save_generated_outputs(
+    decoder: Decoder,
+    output_latents: Dict[str, torch.Tensor],
+    output_dir: str,
     device: torch.device,
+    latent_file_name: str,
 ) -> Dict[str, Any]:
-    """
-    Implement:
-        Generate deterministic controlled outputs and record predicted scores.
-    """
-    latents = torch.stack([latent_from_seed(int(seed)) for seed in seeds], dim=0).to(device)
-    attrs = torch.tensor(list(attr_ids), dtype=torch.long, device=device)
-    images = generator(latents, style_delta=controller(attrs))
-    logits = scorer(images)
+    os.makedirs(output_dir, exist_ok=True)
+
+    first_indices = []
+    for class_id in range(NUM_CLASSES):
+        class_positions = torch.nonzero(output_latents["labels"] == class_id, as_tuple=False).flatten()
+        if class_positions.numel() == 0:
+            raise ValueError(f"missing generated samples for class {class_id}")
+        first_indices.append(int(class_positions[0].item()))
+    report_payload = {
+        "latents": torch.stack(
+            [output_latents["latents"][idx] for idx in first_indices],
+            dim=0,
+        ),
+        "labels": torch.arange(NUM_CLASSES, dtype=torch.long),
+    }
+    report_logits = decoder(report_payload["latents"].to(device))
+    report_images = torch.sigmoid(report_logits).cpu()
+    torchvision.utils.save_image(report_images, os.path.join(output_dir, "gan_samples.png"), nrow=5, pad_value=1.0)
+
+    torch.save(output_latents, os.path.join(output_dir, latent_file_name))
+
     return {
-        "images": images.cpu(),
-        "pred_attr": torch.argmax(logits, dim=-1).cpu(),
-        "scores": logits.cpu(),
+        "report_labels": report_payload["labels"],
+        "generated_shape": tuple(output_latents["latents"].shape),
     }
 
 
-def save_checkpoint(path: str, controller: Controller, config_name: str, metrics: Dict[str, float]) -> None:
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    payload = {
-        "controller": {k: v.detach().cpu() for k, v in controller.state_dict().items()},
-        "config_name": config_name,
-        "metrics": metrics,
-        "attr_names": ATTR_NAMES,
-    }
-    torch.save(payload, path)
+def make_dataset(payload: Dict[str, torch.Tensor]) -> LatentDataset:
+    return LatentDataset(payload["latents"], payload["labels"])
 
 
-def load_checkpoint(path: str, controller: Controller) -> Dict[str, Any]:
-    payload = torch.load(path, map_location="cpu", weights_only=True)
-    controller.load_state_dict(payload["controller"])
-    return payload
+def print_latex_report_train(metrics: Dict[str, float]) -> None:
+    print("latex-train-row:")
+    print(f"24 & {metrics['d_loss']:.4f} & {metrics['g_loss']:.4f} \\\\")
 
 
-def select_best_config(train_ds: Dataset, val_ds: Dataset, batch_size: int, device: torch.device) -> Tuple[SweepConfig, Dict[str, Dict[str, float]]]:
-    results: Dict[str, Dict[str, float]] = {}
-    best_cfg: SweepConfig | None = None
-    best_score = -1e9
-    for cfg in default_sweep():
-        generator, controller, scorer = build_generator_and_controllers(device)
-        _, metrics = train_controller(generator, controller, scorer, train_ds, val_ds, cfg, batch_size, device)
-        results[cfg.name] = metrics
-        if metrics["total_score"] > best_score:
-            best_score = metrics["total_score"]
-            best_cfg = cfg
-    if best_cfg is None:
-        raise RuntimeError("no sweep config selected")
-    return best_cfg, results
+def print_latex_report_test(train_vs_test: Dict[str, float], generated_vs_test: Dict[str, float]) -> None:
+    print("latex-test-rows:")
+    print(f"train-vs-test: avg_frechet={train_vs_test['avg_frechet']:.4f}")
+    print(f"generated-vs-test: avg_frechet={generated_vs_test['avg_frechet']:.4f}")
 
 
 def main() -> None:
@@ -348,37 +634,73 @@ def main() -> None:
     parser.add_argument("--mode", choices=["train", "test"], default="train")
     parser.add_argument("--data_dir", default=os.path.join(os.path.dirname(__file__), "data"))
     parser.add_argument("--checkpoint_path", default="outputs/gan_model.pt")
-    parser.add_argument("--batch_size", type=int, default=32)
+    parser.add_argument("--latent_output_name", default="gan_generated_latents.pt")
+    parser.add_argument("--batch_size", type=int, default=256)
+    parser.add_argument("--samples_per_class", type=int, default=1000)
     parser.add_argument("--seed", type=int, default=17)
     args = parser.parse_args()
 
     set_seed(args.seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    decoder = load_decoder(os.path.join(args.data_dir, "mnist_vae.pt"), device)
+    cfg = default_config()
 
     if args.mode == "train":
-        train_rows = load_jsonl(os.path.join(args.data_dir, "train.jsonl"))
-        val_rows = load_jsonl(os.path.join(args.data_dir, "val.jsonl"))
-        train_ds = ControlDataset(train_rows)
-        val_ds = ControlDataset(val_rows)
-        best_cfg, sweep_results = select_best_config(train_ds, val_ds, args.batch_size, device)
+        train_payload = load_latent_split(os.path.join(args.data_dir, "train_latents.pt"))
+        train_ds = make_dataset(train_payload)
 
-        merged_ds = ControlDataset(train_rows + val_rows)
-        generator, controller, scorer = build_generator_and_controllers(device)
-        controller, _ = train_controller(generator, controller, scorer, merged_ds, val_ds, best_cfg, args.batch_size, device)
-        metrics = evaluate_controller(generator, controller, scorer, val_ds, args.batch_size, device)
-        save_checkpoint(args.checkpoint_path, controller, best_cfg.name, metrics)
-        print("validation sweep:")
-        for name, result in sweep_results.items():
-            print(name, result)
-        print("best:", best_cfg.name, metrics)
+        print(
+            f"[config] hidden_dim={cfg.hidden_dim} lr_g={cfg.lr_g} lr_d={cfg.lr_d} "
+            f"epochs={cfg.epochs} samples_per_class={args.samples_per_class}",
+            flush=True,
+        )
+        generator, discriminator = build_gan_models(device=device, hidden_dim=cfg.hidden_dim)
+        generator, metrics = train_gan(
+            generator,
+            discriminator,
+            train_ds,
+            cfg,
+            args.batch_size,
+            device,
+            run_name="train",
+        )
+        save_checkpoint(args.checkpoint_path, generator, cfg, metrics)
+        generated_latents = sample_conditioned_latents(
+            generator,
+            sample_fixed_class_counts(args.samples_per_class),
+            device,
+            seed_offset=60_000,
+        )
+        output_info = save_generated_outputs(decoder, generated_latents, "outputs", device, args.latent_output_name)
+        print("final-train-metrics:", metrics)
+        print_latex_report_train(metrics)
+        print("saved samples:", output_info)
     else:
-        test_rows = load_jsonl(os.path.join(args.data_dir, "test.jsonl"))
-        test_ds = ControlDataset(test_rows)
-        generator, controller, scorer = build_generator_and_controllers(device)
-        payload = load_checkpoint(args.checkpoint_path, controller)
-        metrics = evaluate_controller(generator, controller.to(device), scorer, test_ds, args.batch_size, device)
-        print("loaded config:", payload["config_name"])
-        print("test:", metrics)
+        train_payload = load_latent_split(os.path.join(args.data_dir, "train_latents.pt"))
+        train_ds = make_dataset(train_payload)
+        generator, payload = load_checkpoint(args.checkpoint_path, device)
+        generated_latents = sample_conditioned_latents(
+            generator,
+            sample_fixed_class_counts(args.samples_per_class),
+            device,
+            seed_offset=60_000,
+        )
+        output_info = save_generated_outputs(decoder, generated_latents, "outputs", device, args.latent_output_name)
+        print("loaded config:", payload["config"])
+        test_path = os.path.join(args.data_dir, "test_latents.pt")
+        if os.path.exists(test_path):
+            test_payload = load_latent_split(test_path)
+            test_ds = make_dataset(test_payload)
+            baseline_latents = stratified_subset(train_ds, args.samples_per_class, seed=args.seed + 123)
+            train_vs_test = latent_match_score(test_ds.latents, baseline_latents["latents"])
+            generated_vs_test = latent_match_score(test_ds.latents, generated_latents["latents"])
+            print("train-vs-test:", train_vs_test)
+            print("generated-vs-test:", generated_vs_test)
+            print_latex_report_test(train_vs_test, generated_vs_test)
+        else:
+            print(f"hidden test split not available locally: {test_path}")
+            print("skipped train-vs-test and generated-vs-test scoring")
+        print("saved samples:", output_info)
 
 
 if __name__ == "__main__":
