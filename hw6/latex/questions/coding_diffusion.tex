@@ -3,16 +3,8 @@
 
 In this problem, you will fine-tune \emph{Stable Diffusion 1.5} on a visible
 set of generated prompt/image pairs.
-The released data-generation pipeline creates:
-\begin{itemize}
-\item 100 visible training prompts,
-\item for each prompt, 20 candidate images from Stable Diffusion 1.5,
-\item a frozen visible reward model to pick the best candidate,
-\item one saved visible training image for each prompt.
-\end{itemize}
-Students do \emph{not} implement the reward-filtering pipeline.
-Instead, they receive the filtered visible prompt/image pairs and fine-tune on
-them directly.
+Students are given 100 visible training prompts and the corresponding image
+data, and fine-tune on that dataset directly.
 
 The visible files are
 \[
@@ -26,7 +18,7 @@ Each visible row contains:
 \item \texttt{image\_path}
 \end{itemize}
 
-The released solution file also contains a separate visible evaluation set of
+The starter code also contains a separate visible evaluation set of
 10 prompts that are similar to, but not identical with, the training prompts.
 Students should:
 \begin{itemize}
@@ -63,14 +55,10 @@ The released code follows this procedure:
 
 \medskip
 \noindent\textbf{Visible report.}
-Students must report:
+In the written homework they submit, students must include:
 \begin{itemize}
 \item a LaTeX table containing the final training loss,
-\item the 10 base-model evaluation images,
-\item the 10 fine-tuned evaluation images,
-\item the 4-column comparison figure,
-\item the base-model evaluation score from \texttt{diffusion\_eval.py},
-\item the fine-tuned evaluation score from \texttt{diffusion\_eval.py}.
+\item the 4-column comparison figure.
 \end{itemize}
 
 \medskip
@@ -80,8 +68,8 @@ Gradescope will:
 \item run unit tests on the three core functions above,
 \item run \texttt{python diffusion\_solution.py},
 \item verify that the base and fine-tuned evaluation images are produced,
-\item score the saved images with \texttt{python diffusion\_eval.py} on the
-visible evaluation prompts.
+\item score the 10 submitted fine-tuned evaluation images with a hidden
+autograder-side evaluator.
 \end{itemize}
 The score breakdown is:
 \begin{itemize}
@@ -110,29 +98,21 @@ It should deterministically generate one image for each prompt in the provided
 evaluation set, using the configured seeds and generation hyperparameters.
 
 \item \textbf{Final Reporting and Picture Submission (8 points).}\\
-Run the released training script and include:
+Run the released training script. In the written homework you hand in, include:
 \begin{itemize}
 \item the LaTeX loss table,
-\item the 10 base-model evaluation images,
-\item the 10 fine-tuned evaluation images,
 \item the saved comparison image.
 \end{itemize}
 
 \item \textbf{Evaluation Score (6 points).}\\
-Run \texttt{python diffusion\_eval.py} on the saved fine-tuned evaluation
-images and report the resulting score.
+Submit the generated fine-tuned evaluation images to the autograder:
+\begin{itemize}
+\item \texttt{outputs/finetuned\_eval\_images/}
+\end{itemize}
+This portion is graded from the submitted fine-tuned evaluation images.
 \end{enumerate}
 
 \begin{solution}
-
-Reference numbers depend on the installed SD 1.5 checkpoint, GPU, and runtime
-environment.
-For TA/reference grading on the visible 10-prompt evaluation set:
-\begin{itemize}
-\item a base-model score around \texttt{4.0} is reasonable,
-\item a solid fine-tuned score around \texttt{5.4} is a good target,
-\item grading should use a tolerance band rather than exact equality.
-\end{itemize}
 
 \bigskip
 
@@ -146,20 +126,8 @@ Train loss & -- \\
 
 \bigskip
 
-Visible evaluation score summary:
-\begin{tabular}{lcc}
-\hline
-Model & Score & Comment \\
-\hline
-Base & $\approx 4.0$ & reference baseline \\
-Fine-tuned & $\approx 5.4$ & strong visible result \\
-\hline
-\end{tabular}
-
-\bigskip
-
-Include the saved base image set, fine-tuned image set, and comparison figure
-in the final report.
+Include the LaTeX loss table and the saved comparison figure in the written
+solution you hand in.
 
 \end{solution}
 
