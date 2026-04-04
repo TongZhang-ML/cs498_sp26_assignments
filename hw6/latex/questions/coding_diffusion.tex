@@ -114,20 +114,28 @@ This portion is graded from the submitted fine-tuned evaluation images.
 
 \begin{solution}
 
-\bigskip
-
 \begin{tabular}{lr}
 \hline
 Metric & Value \\
 \hline
-Train loss & -- \\
+Train loss & 0.1419 \\
+Base eval score & 4.3555 \\
+Fine-tuned eval score & 5.5019 \\
 \hline
 \end{tabular}
 
 \bigskip
 
-Include the LaTeX loss table and the saved comparison figure in the written
-solution you hand in.
+Running \texttt{python diffusion\_solution.py} produced a final training loss of
+0.1419. Scoring the saved evaluation images with \texttt{python diffusion\_eval.py
+--image\_dir outputs/base\_eval\_images} and
+\texttt{python diffusion\_eval.py --image\_dir outputs/finetuned\_eval\_images}
+gave an average aesthetic score of 4.3555 for the base model and 5.5019 for the
+fine-tuned model.
+
+\begin{center}
+\includegraphics[width=\linewidth]{figures/diffusion_eval_comparison.png}
+\end{center}
 
 \end{solution}
 
